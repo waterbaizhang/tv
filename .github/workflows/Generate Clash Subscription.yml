@@ -1,24 +1,32 @@
 name: Generate Clash Subscription
 
+# 定时每天运行 + 手动触发
 on:
-  push:
-    paths:
-      - 'clash.txt'
+  schedule:
+    - cron: '0 0 * * *'  # UTC 时间每天 00:00 执行一次
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: write  # 允许推送回仓库
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. 检出仓库
       - name: Checkout repo
         uses: actions/checkout@v3
         with:
           persist-credentials: true
 
+      # 2. 配置 Git 用户
+      - name: Configure Git user
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+      # 3. 安装 Python 依赖
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -26,19 +34,16 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install pyyaml requests
 
+      # 4. 生成 Clash YAML
       - name: Generate Clash Subscription
         run: |
           python generate_clash.py
           ls -al  # 确认 clash.yaml 是否生成
 
-      - name: Configure Git user
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-
+      # 5. Commit & Push
       - name: Commit and Push
         run: |
           git add clash.yaml
