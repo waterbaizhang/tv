@@ -25,7 +25,6 @@ with open(subscription_file, "r") as f:
         try:
             r = requests.get(url, timeout=10)
             r.raise_for_status()
-            # 解析 YAML 并添加 proxies
             cfg = yaml.safe_load(r.text)
             if "proxies" in cfg:
                 proxies.extend(cfg["proxies"])
@@ -34,7 +33,6 @@ with open(subscription_file, "r") as f:
 
 base_config["proxies"] = proxies
 
-# 输出合并后的订阅文件
 with open(output_file, "w") as f:
     yaml.dump(base_config, f, sort_keys=False)
 
