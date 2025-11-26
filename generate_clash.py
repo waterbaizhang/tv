@@ -4,7 +4,7 @@ import requests
 subscription_file = "clash.txt"
 output_file = "clash.yaml"
 
-# 基础配置
+# 基础配置模板
 base_config = {
     "port": 7890,
     "socks-port": 7891,
@@ -12,28 +12,56 @@ base_config = {
     "mode": "Rule",
     "log-level": "info",
     "proxies": [],
-    "proxy-groups": []
+    "proxy-groups": [],
+    "rules": []
 }
 
-proxies = []
+all_proxies = []
+all_proxy_groups = []
 
 with open(subscription_file, "r") as f:
-    for line in f:
-        url = line.strip()
-        if not url or url.startswith("#"):
-            continue
-        try:
-            r = requests.get(url, timeout=10)
-            r.raise_for_status()
-            cfg = yaml.safe_load(r.text)
-            if "proxies" in cfg:
-                proxies.extend(cfg["proxies"])
-        except Exception as e:
-            print(f"Failed to fetch {url}: {e}")
+    urls = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
-base_config["proxies"] = proxies
+for url in urls:
+    try:
+        print(f"Fetching {url}...")
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        cfg = yaml.safe_load(r.text)
+        
+        # 合并 proxies
+        if "proxies" in cfg:
+            all_proxies.extend(cfg["proxies"])
+        
+        # 合并 proxy-groups
+        if "proxy-groups" in cfg:
+            for group in cfg["proxy-groups"]:
+                # 如果已经存在同名 group，则只合并节点
+                existing = next((g for g in all_proxy_groups if g["name"] == group["name"]), None)
+                if existing:
+                    existing["proxies"].extend(group.get("proxies", []))
+                else:
+                    all_proxy_groups.append(group)
+        
+        # 合并 rules（直接追加，不去重）
+        if "rules" in cfg:
+            base_config["rules"].extend(cfg["rules"])
+        
+    except Exception as e:
+        print(f"Failed to fetch {url}: {e}")
+
+# 去重 proxies（通过 name 去重）
+seen_names = set()
+unique_proxies = []
+for p in all_proxies:
+    if p["name"] not in seen_names:
+        unique_proxies.append(p)
+        seen_names.add(p["name"])
+
+base_config["proxies"] = unique_proxies
+base_config["proxy-groups"] = all_proxy_groups
 
 with open(output_file, "w") as f:
     yaml.dump(base_config, f, sort_keys=False)
 
-print(f"Generated {output_file} with {len(proxies)} proxies")
+print(f"Generated {output_file} with {len(unique_proxies)} proxies")
