@@ -1,46 +1,67 @@
-name: Generate Clash Subscription
+import yaml
+import requests
 
-on:
-  push:
-    paths:
-      - 'clash.txt'
-  workflow_dispatch:
+subscription_file = "clash.txt"
+output_file = "clash.yaml"
 
-permissions:
-  contents: write
+# 基础配置模板
+base_config = {
+    "port": 7890,
+    "socks-port": 7891,
+    "allow-lan": True,
+    "mode": "Rule",
+    "log-level": "info",
+    "proxies": [],
+    "proxy-groups": [],
+    "rules": []
+}
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+all_proxies = []
+all_proxy_groups = []
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: true
+with open(subscription_file, "r") as f:
+    urls = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+for url in urls:
+    try:
+        print(f"Fetching {url}...")
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        cfg = yaml.safe_load(r.text)
+        
+        # 合并 proxies
+        if "proxies" in cfg:
+            all_proxies.extend(cfg["proxies"])
+        
+        # 合并 proxy-groups
+        if "proxy-groups" in cfg:
+            for group in cfg["proxy-groups"]:
+                # 如果已经存在同名 group，则只合并节点
+                existing = next((g for g in all_proxy_groups if g["name"] == group["name"]), None)
+                if existing:
+                    existing["proxies"].extend(group.get("proxies", []))
+                else:
+                    all_proxy_groups.append(group)
+        
+        # 合并 rules（直接追加，不去重）
+        if "rules" in cfg:
+            base_config["rules"].extend(cfg["rules"])
+        
+    except Exception as e:
+        print(f"Failed to fetch {url}: {e}")
 
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install pyyaml requests
+# 去重 proxies（通过 name 去重）
+seen_names = set()
+unique_proxies = []
+for p in all_proxies:
+    if p["name"] not in seen_names:
+        unique_proxies.append(p)
+        seen_names.add(p["name"])
 
-      - name: Generate Clash Subscription
-        run: |
-          python generate_clash.py
-          ls -al  # 确认 clash.yaml 是否生成
+base_config["proxies"] = unique_proxies
+base_config["proxy-groups"] = all_proxy_groups
 
-      - name: Configure Git user
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
+with open(output_file, "w") as f:
+    yaml.dump(base_config, f, sort_keys=False)
 
-      - name: Commit and Push
-        run: |
-          git add clash.yaml
-          git commit -m "Update Clash subscription" || echo "⚠️ No changes"
-          git push
+print(f"Generated {output_file} with {len(unique_proxies)} proxies")
