@@ -54,8 +54,10 @@ jobs:
 
       - name: Check if any YAML loaded
         run: |
-          if ! ls sources/*.yaml >/dev/null 2>&1; then
-            echo "❌ No valid YAML content loaded — stopping workflow"
+          shopt -s nullglob
+          files=(sources/*.yaml)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "❌ No valid YAML files loaded — stopping workflow"
             exit 0
           fi
 
@@ -78,16 +80,24 @@ jobs:
           shopt -s nullglob
           files=(sources/*.yaml)
           if [ ${#files[@]} -eq 0 ]; then
-            echo "❌ No YAML files to merge — skipping"
+            echo "❌ No YAML files to merge — skipping clashgo.yaml"
             exit 0
           fi
           yq eval-all 'reduce .[] as $item ({}; . *? $item)' "${files[@]}" > clashgo.yaml
+          if [ ! -f clashgo.yaml ]; then
+            echo "❌ clashgo.yaml not generated — skipping commit"
+            exit 0
+          fi
           echo "✅ Generated clashgo.yaml"
 
       - name: Commit & push result
         run: |
+          if [ ! -f clashgo.yaml ]; then
+            echo "❌ clashgo.yaml not found — skipping commit"
+            exit 0
+          fi
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add clashgo.yaml
-          git commit -m "Auto update clashgo.yaml" || echo "⚠️ No changes"
+          git diff --cached --quiet || git commit -m "Auto update clashgo.yaml"
           git push
