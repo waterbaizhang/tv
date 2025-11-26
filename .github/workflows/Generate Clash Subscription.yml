@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # 允许 push 回仓库
+  contents: write
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
         with:
-          persist-credentials: true  # 使用 GITHUB_TOKEN 推送
+          persist-credentials: true
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -26,12 +26,18 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install pyyaml requests
 
       - name: Generate Clash Subscription
         run: |
           python generate_clash.py
+          ls -al  # 确认 clash.yaml 是否生成
+
+      - name: Configure Git user
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
 
       - name: Commit and Push
         run: |
