@@ -27,27 +27,35 @@ jobs:
       - name: Create temp folder
         run: mkdir sources
 
-      - name: Read YAML content from URLs (skip failures)
+      - name: Read YAML content from URLs (skip failures & clean URLs)
         run: |
           index=1
           while read url; do
+            # 去掉前后空格
+            url=$(echo "$url" | xargs)
             [ -z "$url" ] && continue
-            echo "Fetching $url"
 
+            # 检查是否以 http/https 开头
+            if [[ "$url" != http* ]]; then
+              echo "Invalid URL format: $url — skipped"
+              continue
+            fi
+
+            echo "Fetching $url"
             if content=$(curl -fsSL "$url"); then
               filename="sources/$index.yaml"
               echo "$content" > "$filename"
               echo "Loaded into $filename"
               index=$((index + 1))
             else
-              echo "Failed to fetch $url — skipped"
+              echo " Failed to fetch $url — skipped"
             fi
           done < clash.txt
 
       - name: Check if any YAML loaded
         run: |
           if ! ls sources/*.yaml >/dev/null 2>&1; then
-            echo " No valid YAML content loaded — stopping workflow"
+            echo "No valid YAML content loaded — stopping workflow"
             exit 0
           fi
 
@@ -56,21 +64,4 @@ jobs:
           i=1
           for file in sources/*.yaml; do
             count=$(yq eval '.proxies | length' "$file" 2>/dev/null || echo 0)
-            if [ "$count" -gt 0 ]; then
-              yq eval ".proxies |= with(.[]; .name = \"${i}-\" + .name)" -i "$file"
-              i=$((i + count))
-            fi
-          done
-
-      - name: Merge YAMLs (no overwrite)
-        run: |
-          yq eval-all 'reduce .[] as $item ({}; . *? $item)' sources/*.yaml > clashgo.yaml
-          echo "Generated clashgo.yaml"
-
-      - name: Commit & push result
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add clashgo.yaml
-          git commit -m "Auto update clashgo.yaml" || echo "⚠️ No changes"
-          git push
+            if [ "$c]()
