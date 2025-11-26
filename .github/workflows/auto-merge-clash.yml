@@ -3,11 +3,11 @@ name: Auto Merge Clash YAML
 on:
   push:
     paths:
-      - clash.txt
-  workflow_dispatch:
+      - clash.txt        # ✅ clash.txt 更新时自动执行
+  workflow_dispatch:     # ✅ 支持手动运行
 
 permissions:
-  contents: write
+  contents: write        # ✅ 允许自动提交代码
 
 jobs:
   merge:
@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0     # ✅ 必须，否则无法 push
 
       - name: Install yq
         run: |
@@ -28,35 +28,32 @@ jobs:
       - name: Create temp folder
         run: mkdir downloads
 
-      - name: Download YAMLs from clash.txt
+      - name: Download YAMLs from clash.txt (skip errors)
         run: |
           while read url; do
             [ -z "$url" ] && continue
-            echo "Downloading $url"
-            curl -L "$url" -o "downloads/$(basename "$url")"
+            filename="downloads/$(basename "$url")"
+            echo "📥 Downloading $url"
+
+            if curl -fSL "$url" -o "$filename"; then
+              echo "✅ Downloaded: $filename"
+            else
+              echo "⚠️ Failed: $url — skipped"
+              rm -f "$filename"
+              continue
+            fi
           done < clash.txt
+
+      - name: Check downloaded files
+        run: |
+          if ! ls downloads/*.yaml 1> /dev/null 2>&1; then
+            echo "❌ No valid YAML files downloaded — stopping workflow"
+            exit 0
+          fi
 
       - name: Add sequence numbers to - name
         run: |
           i=1
           for file in downloads/*.yaml; do
-            echo "Processing $file"
-            yq eval \
-              ".proxies |= with(.[]; .name = \"${i}-\" + .name )" \
-              -i "$file"
-            i=$((i + 1))
-          done
-
-      - name: Merge YAMLs (no overwrite)
-        run: |
-          yq eval-all 'reduce .[] as $item ({}; . *? $item)' downloads/*.yaml \
-            > clashgo.yaml
-          echo "✅ merged into clashgo.yaml"
-
-      - name: Commit & push result
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add clashgo.yaml
-          git commit -m "Auto update clashgo.yaml" || echo "No changes"
-          git push
+            echo "🔢 Processing $file"
+            count=$(yq eval '.proxies | length' "$file" 2>/dev/null || echo 0)
