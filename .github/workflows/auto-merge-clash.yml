@@ -1,4 +1,4 @@
-name: Auto Merge Clash YAML
+name: Merge Clash YAML
 
 on:
   push:
@@ -14,60 +14,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout repo
+      - uses: actions/checkout@v4
 
       - name: Install yq
         run: |
           sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
           sudo chmod +x /usr/local/bin/yq
 
-      - name: Create temp folder
-        run: mkdir downloads
+      - name: Create temp directory
+        run: mkdir sources
 
-      - name: Download YAMLs from clash.txt (skip errors)
+      - name: Read URLs from clash.txt and load YAML content
         run: |
+          index=1
           while read url; do
             [ -z "$url" ] && continue
-            filename="downloads/$(basename "$url")"
-            echo "Downloading $url"
-            if curl -fSL "$url" -o "$filename"; then
-              echo "Downloaded: $filename"
-            else
-              echo "Failed: $url — skipped"
-              rm -f "$filename"
-            fi
+            echo "📥 Reading: $url"
+
+            content=$(curl -fsSL "$url") || {
+              echo "⚠️ Failed — skipped"
+              continue
+            }
+
+            echo "$content" > "sources/$index.yaml"
+            echo "✅ Loaded into sources/$index.yaml"
+            index=$((index + 1))
           done < clash.txt
 
-      - name: Check downloaded files
+      - name: Merge YAML content
         run: |
-          if ! ls downloads/*.yaml >/dev/null 2>&1; then
-            echo "No valid YAML files — stopping"
-            exit 0
-          fi
+          yq eval-all 'reduce .[] as $item ({}; . * $item)' sources/*.yaml > clashgo.yaml
+          echo "✅ clashgo.yaml generated"
 
-      - name: Add sequence numbers
-        run: |
-          i=1
-          for file in downloads/*.yaml; do
-            count=$(yq eval '.proxies | length' "$file" 2>/dev/null || echo 0)
-            if [ "$count" -gt 0 ]; then
-              yq eval ".proxies |= with(.[]; .name = \"${i}-\" + .name)" -i "$file"
-              i=$((i + count))
-            fi
-          done
-
-      - name: Merge YAMLs (no overwrite)
-        run: |
-          yq eval-all 'reduce .[] as $item ({}; . *? $item)' downloads/*.yaml > clashgo.yaml
-          echo "Generated clashgo.yaml"
-
-      - name: Commit & push result
+      - name: Push result
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add clashgo.yaml
-          git commit -m "Auto update clashgo.yaml" || echo "No changes"
+          git commit -m "Auto update clashgo.yaml" || echo "⚠️ No changes to commit"
           git push
