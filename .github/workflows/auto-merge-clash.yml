@@ -25,14 +25,17 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
 
       - name: Create temp folder
-        run: mkdir sources
+        run: mkdir -p sources
 
       - name: Read YAML content from URLs (skip failures & clean URLs)
         run: |
           index=1
           while read url; do
+            # 去掉首尾空格
             url=$(echo "$url" | xargs)
             [ -z "$url" ] && continue
+
+            # URL 必须以 http/https 开头
             if [[ "$url" != http* ]]; then
               echo "⚠️ Invalid URL format: $url — skipped"
               continue
@@ -61,7 +64,6 @@ jobs:
           for file in sources/*.yaml; do
             count=$(yq eval '.proxies | length' "$file" 2>/dev/null || echo 0)
             if [ "$count" -gt 0 ]; then
-              # 按顺序编号
               i=1
               for idx in $(seq 0 $((count - 1))); do
                 yq eval ".proxies[$idx].name = \"${i}\"" -i "$file"
