@@ -36,6 +36,7 @@ jobs:
           merged_proxies = []
           merged_rules = []
           merged_groups = {}
+          base_config = {}  # 保存第一个 YAML 的全局设置
 
           def rename_if_exists(items, name):
               base = name
@@ -69,48 +70,48 @@ jobs:
                   print("❌ Failed to parse YAML:", url)
                   continue
 
-              # Merge proxies
+              # 保存第一个 YAML 的全局配置（去掉 proxies、proxy-groups、rules）
+              if not base_config:
+                  base_config = {k: v for k, v in data.items() if k not in ["proxies", "proxy-groups", "rules"]}
+
+              # 合并 proxies
               if "proxies" in data:
                   for p in data["proxies"]:
                       p_copy = p.copy()
                       p_copy["name"] = rename_if_exists(merged_proxies, p_copy["name"])
                       merged_proxies.append(p_copy)
 
-              # Merge rules
+              # 合并 rules
               if "rules" in data:
                   merged_rules.extend(data["rules"])
 
-              # Merge proxy-groups
+              # 合并 proxy-groups
               if "proxy-groups" in data:
                   for g in data["proxy-groups"]:
                       g_name = g.get("name")
                       if g_name not in merged_groups:
                           merged_groups[g_name] = g.copy()
-                      else:
-                          # 如果已有 group，保留原策略类型，只更新节点列表时可注入所有 proxies
-                          pass
 
           # 去重 rules
           dedup_rules = list(collections.OrderedDict.fromkeys(merged_rules))
 
-          # 注入所有节点到 proxy-groups
+          # 注入最新节点到 proxy-groups
           proxy_names = [p["name"] for p in merged_proxies]
           for g_name, g in merged_groups.items():
               g_type = g.get("type", "").upper()
-              # 对于选择类策略组（select, url-test, fallback, load-balance）注入最新节点
               if g_type in ["SELECT", "URL-TEST", "FALLBACK", "LOAD-BALANCE"]:
                   g["proxies"] = proxy_names
 
-          final = {
-              "proxies": merged_proxies,
-              "proxy-groups": list(merged_groups.values()),
-              "rules": dedup_rules
-          }
+          # 生成最终配置
+          final = base_config.copy()
+          final["proxies"] = merged_proxies
+          final["proxy-groups"] = list(merged_groups.values())
+          final["rules"] = dedup_rules
 
           with open("final.yaml", "w", encoding="utf-8") as f:
               yaml.dump(final, f, allow_unicode=True, sort_keys=False)
 
-          print("✔ final.yaml generated (merged proxies, rules, proxy-groups)")
+          print("✔ final.yaml generated with full global settings preserved")
           EOF
 
       - name: Run merge script
@@ -121,5 +122,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add final.yaml
-          git commit -m "Auto update final.yaml (merged proxies, rules, proxy-groups)" || echo "No changes"
+          git commit -m "Auto update final.yaml (merged proxies, rules, proxy-groups, global settings)" || echo "No changes"
           git push
