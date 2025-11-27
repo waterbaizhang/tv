@@ -1,0 +1,445 @@
+proxies:
+- name: dongtaiwang.com_0
+  server: 51.159.107.20
+  port: 55255
+  type: tuic
+  uuid: 79529c4a-4028-4701-a6d6-4e94b78b50fd
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_1
+  type: anytls
+  server: 62.210.11.74
+  port: 8443
+  password: dongtaiwang.com
+  client-fingerprint: chrome
+  udp: true
+  idle-session-check-interval: 30
+  idle-session-timeout: 30
+  min-idle-session: 0
+  alpn:
+  - h2
+  - http/1.1
+  skip-cert-verify: true
+- name: dongtaiwang.com_2
+  type: hysteria
+  server: 51.159.107.20
+  port: 20001
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_3
+  type: hysteria
+  server: 2001:bc8:1203:25::3
+  port: 20001
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_4
+  type: hysteria
+  server: 2001:bc8:1203:25::4
+  port: 20001
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_0-1
+  type: anytls
+  server: 62.210.10.140
+  port: 8443
+  password: dongtaiwang.com
+  client-fingerprint: chrome
+  udp: true
+  idle-session-check-interval: 30
+  idle-session-timeout: 30
+  min-idle-session: 0
+  alpn:
+  - h2
+  - http/1.1
+  skip-cert-verify: true
+- name: dongtaiwang.com_0-2
+  type: hysteria
+  server: 62.210.10.140
+  port: 42248
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_0-3
+  type: vless
+  server: 2001:bc8:32d7:158::5
+  port: 10033
+  uuid: 56618bde-5a09-4ef8-ae56-6e7a8d69ec67
+  network: grpc
+  udp: true
+  tls: true
+  flow: null
+  servername: nijigen-works.jp
+  reality-opts:
+    public-key: m1ORavmKKsF8kn6JfNF1m35wRORu8c6YLyxpSfyiYQ0
+    short-id: dfdfb0e2e2d400c4
+  grpc-opts:
+    grpc-service-name: FhwHiFzK
+  client-fingerprint: chrome
+- name: dongtaiwang.com_0-4
+  server: 2001:bc8:1203:106::100
+  port: 55111
+  type: tuic
+  uuid: 5ae31731-78ac-483a-b524-011d05072ef5
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_1-1
+  server: 2001:bc8:1203:106::101
+  port: 55111
+  type: tuic
+  uuid: 5ae31731-78ac-483a-b524-011d05072ef5
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_2-1
+  server: 2001:bc8:1203:106::102
+  port: 55111
+  type: tuic
+  uuid: 5ae31731-78ac-483a-b524-011d05072ef5
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_3-1
+  server: 2001:bc8:1203:106::103
+  port: 55111
+  type: tuic
+  uuid: 5ae31731-78ac-483a-b524-011d05072ef5
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_4-1
+  server: 2001:bc8:1203:106::104
+  port: 55111
+  type: tuic
+  uuid: 5ae31731-78ac-483a-b524-011d05072ef5
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_0-5
+  type: hysteria
+  server: 2001:bc8:1203:106::200
+  port: 47821
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_1-2
+  type: hysteria
+  server: 2001:bc8:1203:106::201
+  port: 47821
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_2-2
+  type: hysteria
+  server: 2001:bc8:1203:106::202
+  port: 47821
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_3-2
+  type: hysteria
+  server: 2001:bc8:1203:106::203
+  port: 47821
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_4-2
+  type: hysteria
+  server: 2001:bc8:1203:106::204
+  port: 47821
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+proxy-groups:
+- name: 🚀 节点选择
+  type: select
+  proxies: &id001
+  - dongtaiwang.com_0
+  - dongtaiwang.com_1
+  - dongtaiwang.com_2
+  - dongtaiwang.com_3
+  - dongtaiwang.com_4
+  - dongtaiwang.com_0-1
+  - dongtaiwang.com_0-2
+  - dongtaiwang.com_0-3
+  - dongtaiwang.com_0-4
+  - dongtaiwang.com_1-1
+  - dongtaiwang.com_2-1
+  - dongtaiwang.com_3-1
+  - dongtaiwang.com_4-1
+  - dongtaiwang.com_0-5
+  - dongtaiwang.com_1-2
+  - dongtaiwang.com_2-2
+  - dongtaiwang.com_3-2
+  - dongtaiwang.com_4-2
+- name: ♻️ 自动选择
+  type: fallback
+  url: https://www.gstatic.com/generate_204
+  interval: 5
+  proxies: *id001
+- name: 🌍 国外媒体
+  type: select
+  proxies: *id001
+- name: 📲 电报信息
+  type: select
+  proxies: *id001
+- name: Ⓜ️ 微软服务
+  type: select
+  proxies: *id001
+- name: 🍎 苹果服务
+  type: select
+  proxies: *id001
+- name: 🎯 全球直连
+  type: select
+  proxies: *id001
+- name: 🛑 全球拦截
+  type: select
+  proxies: *id001
+- name: 🍃 应用净化
+  type: select
+  proxies: *id001
+- name: 🐟 漏网之鱼
+  type: select
+  proxies: *id001
+- name: 🚀 节点选择-1
+  type: select
+  proxies: *id001
+- name: ♻️ 自动选择-1
+  type: fallback
+  url: https://www.gstatic.com/generate_204
+  interval: 5
+  proxies: *id001
+- name: 🌍 国外媒体-1
+  type: select
+  proxies: *id001
+- name: 📲 电报信息-1
+  type: select
+  proxies: *id001
+- name: Ⓜ️ 微软服务-1
+  type: select
+  proxies: *id001
+- name: 🍎 苹果服务-1
+  type: select
+  proxies: *id001
+- name: 🎯 全球直连-1
+  type: select
+  proxies: *id001
+- name: 🛑 全球拦截-1
+  type: select
+  proxies: *id001
+- name: 🍃 应用净化-1
+  type: select
+  proxies: *id001
+- name: 🐟 漏网之鱼-1
+  type: select
+  proxies: *id001
+- name: 🚀 节点选择-2
+  type: select
+  proxies: *id001
+- name: ♻️ 自动选择-2
+  type: fallback
+  url: https://www.gstatic.com/generate_204
+  interval: 5
+  proxies: *id001
+- name: 🌍 国外媒体-2
+  type: select
+  proxies: *id001
+- name: 📲 电报信息-2
+  type: select
+  proxies: *id001
+- name: Ⓜ️ 微软服务-2
+  type: select
+  proxies: *id001
+- name: 🍎 苹果服务-2
+  type: select
+  proxies: *id001
+- name: 🎯 全球直连-2
+  type: select
+  proxies: *id001
+- name: 🛑 全球拦截-2
+  type: select
+  proxies: *id001
+- name: 🍃 应用净化-2
+  type: select
+  proxies: *id001
+- name: 🐟 漏网之鱼-2
+  type: select
+  proxies: *id001
+- name: 🚀 节点选择-3
+  type: select
+  proxies: *id001
+- name: ♻️ 自动选择-3
+  type: url-test
+  url: https://www.gstatic.com/generate_204
+  interval: 300
+  tolerance: 50
+  proxies: *id001
+- name: 🌍 国外媒体-3
+  type: select
+  proxies: *id001
+- name: 📲 电报信息-3
+  type: select
+  proxies: *id001
+- name: Ⓜ️ 微软服务-3
+  type: select
+  proxies: *id001
+- name: 🍎 苹果服务-3
+  type: select
+  proxies: *id001
+- name: 🎯 全球直连-3
+  type: select
+  proxies: *id001
+- name: 🛑 全球拦截-3
+  type: select
+  proxies: *id001
+- name: 🍃 应用净化-3
+  type: select
+  proxies: *id001
+- name: 🐟 漏网之鱼-3
+  type: select
+  proxies: *id001
+- name: 🚀 节点选择-4
+  type: select
+  proxies: *id001
+- name: ♻️ 自动选择-4
+  type: fallback
+  url: https://www.gstatic.com/generate_204
+  interval: 5
+  proxies: *id001
+- name: 🌍 国外媒体-4
+  type: select
+  proxies: *id001
+- name: 📲 电报信息-4
+  type: select
+  proxies: *id001
+- name: Ⓜ️ 微软服务-4
+  type: select
+  proxies: *id001
+- name: 🍎 苹果服务-4
+  type: select
+  proxies: *id001
+- name: 🎯 全球直连-4
+  type: select
+  proxies: *id001
+- name: 🛑 全球拦截-4
+  type: select
+  proxies: *id001
+- name: 🍃 应用净化-4
+  type: select
+  proxies: *id001
+- name: 🐟 漏网之鱼-4
+  type: select
+  proxies: *id001
+- name: 🚀 节点选择-5
+  type: select
+  proxies: *id001
+- name: ♻️ 自动选择-5
+  type: fallback
+  url: https://www.gstatic.com/generate_204
+  interval: 5
+  proxies: *id001
+- name: 🌍 国外媒体-5
+  type: select
+  proxies: *id001
+- name: 📲 电报信息-5
+  type: select
+  proxies: *id001
+- name: Ⓜ️ 微软服务-5
+  type: select
+  proxies: *id001
+- name: 🍎 苹果服务-5
+  type: select
+  proxies: *id001
+- name: 🎯 全球直连-5
+  type: select
+  proxies: *id001
+- name: 🛑 全球拦截-5
+  type: select
+  proxies: *id001
+- name: 🍃 应用净化-5
+  type: select
+  proxies: *id001
+- name: 🐟 漏网之鱼-5
+  type: select
+  proxies: *id001
+rules:
+- MATCH,🚀 节点选择
