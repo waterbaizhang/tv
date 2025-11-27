@@ -1,0 +1,129 @@
+name: Merge Clash Configs
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # 每天 UTC 0 点执行
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml requests
+
+      - name: Run merge script
+        run: |
+          cat > merge.py << 'EOF'
+          import requests, yaml, copy, re
+
+          urls = [
+              "https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ipp/clash.meta2/1/config.yaml",
+              "https://fastly.jsdelivr.net/gh/Alvin9999/PAC@latest/backup/img/1/2/ipp/clash.meta2/2/config.yaml",
+              "https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ipp/clash.meta2/3/config.yaml",
+              "https://fastly.jsdelivr.net/gh/Alvin9999/PAC@latest/backup/img/1/2/ipp/clash.meta2/4/config.yaml",
+              "https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ipp/clash.meta2/5/config.yaml",
+              "https://fastly.jsdelivr.net/gh/Alvin9999/PAC@latest/backup/img/1/2/ipp/clash.meta2/6/config.yaml",
+              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/1/config.yaml",
+              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/2/config.yaml",
+              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/3/config.yaml",
+              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/4/config.yaml",
+              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/5/config.yaml",
+              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/6/config.yaml",
+              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/quick/1/config.yaml",
+              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/quick/2/config.yaml",
+              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/quick/3/config.yaml",
+              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/quick/4/config.yaml
+          ]
+
+          final = {
+              "proxies": [],
+              "proxy-groups": [],
+              "rules": []
+          }
+
+          def rename_if_exists(items, name):
+              base = name
+              i = 1
+              while any(item["name"] == name for item in items):
+                  name = f"{base}-{i}"
+                  i += 1
+              return name
+
+          print("Downloading and merging files...")
+          for url in urls:
+              try:
+                  text = requests.get(url, timeout=15).text
+                  data = yaml.safe_load(text)
+                  if not isinstance(data, dict):
+                      print(f"Skipped invalid YAML: {url}")
+                      continue
+
+                  # Merge proxies
+                  if "proxies" in data:
+                      for p in data["proxies"]:
+                          p = copy.deepcopy(p)
+                          p["name"] = rename_if_exists(final["proxies"], p["name"])
+                          final["proxies"].append(p)
+
+                  # Merge proxy-groups
+                  if "proxy-groups" in data:
+                      for g in data["proxy-groups"]:
+                          g = copy.deepcopy(g)
+                          g["name"] = rename_if_exists(final["proxy-groups"], g["name"])
+                          # 修复 group 内部引用节点
+                          if "proxies" in g:
+                              new_list = []
+                              for p_name in g["proxies"]:
+                                  # 如果节点存在，保留原名；不存在跳过
+                                  if any(pr["name"] == p_name for pr in final["proxies"]):
+                                      new_list.append(p_name)
+                                  else:
+                                      # 跳过无效节点
+                                      print(f"Skipped invalid node '{p_name}' in group '{g['name']}'")
+                              g["proxies"] = new_list
+
+                          # 如果 group 是 url-test，保留 type
+                          if g.get("type") == "url-test":
+                              g["type"] = "url-test"
+                              # url-test 自动检测最佳节点，Clash 会自己选择
+                              # 不用在脚本里 ping 测速，保持 Clash 内置功能
+                          final["proxy-groups"].append(g)
+
+                  # Merge rules
+                  if "rules" in data:
+                      final["rules"].extend(data["rules"])
+
+              except Exception as e:
+                  print(f"Failed to load {url}: {e}")
+                  continue
+
+          # 输出 final.yaml
+          with open("final.yaml", "w", encoding="utf-8") as f:
+              yaml.dump(final, f, allow_unicode=True)
+
+          print("Merge complete! final.yaml generated.")
+          EOF
+
+          python3 merge.py
+
+      - name: Commit & Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add final.yaml
+          git commit -m "Auto update final.yaml" || echo "No changes"
+          git push
