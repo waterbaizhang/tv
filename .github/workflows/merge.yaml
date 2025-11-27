@@ -2,7 +2,7 @@ name: Build Clash Config
 
 on:
   schedule:
-    - cron: "0 0 * * *"  
+    - cron: "0 0 * * *"  # 每天 UTC 0 点执行
   workflow_dispatch:
 
 jobs:
@@ -16,35 +16,26 @@ jobs:
       - name: Install Python YAML module
         run: pip install pyyaml requests
 
-      - name: Build merged final.yaml
+      - name: Merge Clash Configs
         run: |
           cat > merge.py << 'EOF'
           import yaml, requests, collections
 
-          urls = [
-              "https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ipp/clash.meta2/1/config.yaml",
-              "https://fastly.jsdelivr.net/gh/Alvin9999/PAC@latest/backup/img/1/2/ipp/clash.meta2/2/config.yaml",
-              "https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ipp/clash.meta2/3/config.yaml",
-              "https://fastly.jsdelivr.net/gh/Alvin9999/PAC@latest/backup/img/1/2/ipp/clash.meta2/4/config.yaml",
-              "https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ipp/clash.meta2/5/config.yaml",
-              "https://fastly.jsdelivr.net/gh/Alvin9999/PAC@latest/backup/img/1/2/ipp/clash.meta2/6/config.yaml",
-              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/1/config.yaml",
-              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/2/config.yaml",
-              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/3/config.yaml",
-              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/4/config.yaml",
-              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/5/config.yaml",
-              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/clash.meta2/6/config.yaml",
-              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/quick/1/config.yaml",
-              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/quick/2/config.yaml",
-              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/quick/3/config.yaml",
-              "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/quick/4/config.yaml",
-              "https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ipp/quick/1/config.yaml",
-              "https://fastly.jsdelivr.net/gh/Alvin9999/PAC@latest/backup/img/1/2/ipp/quick/2/config.yaml",
-              "https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ipp/quick/3/config.yaml",
-              "https://fastly.jsdelivr.net/gh/Alvin9999/PAC@latest/backup/img/1/2/ipp/quick/4/config.yaml",
-          ]
+          # 读取 urls.txt 文件
+          urls = []
+          try:
+              with open("urls.txt", "r", encoding="utf-8") as f:
+                  for line in f:
+                      line = line.strip()
+                      if line and not line.startswith("#"):
+                          urls.append(line)
+          except FileNotFoundError:
+              print("❌ urls.txt not found!")
+              exit(1)
 
-          merged = {"proxies": [], "proxy-groups": [], "rules": []}
+          merged_proxies = []
+          merged_rules = []
+          merged_groups = {}
 
           def rename_if_exists(items, name):
               base = name
@@ -63,7 +54,7 @@ jobs:
                   return None
               return None
 
-          print("Downloading and merging files...")
+          print("Downloading and merging configurations...")
           for url in urls:
               text = safe_request(url)
               if not text:
@@ -82,59 +73,44 @@ jobs:
               if "proxies" in data:
                   for p in data["proxies"]:
                       p_copy = p.copy()
-                      p_copy["name"] = rename_if_exists(merged["proxies"], p_copy["name"])
-                      merged["proxies"].append(p_copy)
+                      p_copy["name"] = rename_if_exists(merged_proxies, p_copy["name"])
+                      merged_proxies.append(p_copy)
+
+              # Merge rules
+              if "rules" in data:
+                  merged_rules.extend(data["rules"])
 
               # Merge proxy-groups
               if "proxy-groups" in data:
                   for g in data["proxy-groups"]:
-                      g_copy = g.copy()
-                      if any(x["name"] == g_copy["name"] for x in merged["proxy-groups"]):
-                          count = sum(1 for x in merged["proxy-groups"] if x["name"].startswith(g_copy["name"]))
-                          g_copy["name"] = f"{g_copy['name']}-{count}"
-                      merged["proxy-groups"].append(g_copy)
+                      g_name = g.get("name")
+                      if g_name not in merged_groups:
+                          merged_groups[g_name] = g.copy()
+                      else:
+                          # 如果已有 group，保留原策略类型，只更新节点列表时可注入所有 proxies
+                          pass
 
-              # Merge rules
-              if "rules" in data:
-                  merged["rules"].extend(data["rules"])
+          # 去重 rules
+          dedup_rules = list(collections.OrderedDict.fromkeys(merged_rules))
 
-          # 去除重复 rules
-          merged["rules"] = list(collections.OrderedDict.fromkeys(merged["rules"]))
+          # 注入所有节点到 proxy-groups
+          proxy_names = [p["name"] for p in merged_proxies]
+          for g_name, g in merged_groups.items():
+              g_type = g.get("type", "").upper()
+              # 对于选择类策略组（select, url-test, fallback, load-balance）注入最新节点
+              if g_type in ["SELECT", "URL-TEST", "FALLBACK", "LOAD-BALANCE"]:
+                  g["proxies"] = proxy_names
 
-          # --- 自动生成 tag/region 分组 ---
-          tag_groups = {}  # key=tag/region, value=list of node names
-          for p in merged["proxies"]:
-              tags = []
-              if "tag" in p:
-                  tags.append(p["tag"])
-              if "region" in p:
-                  tags.append(p["region"])
-              for t in tags:
-                  if t not in tag_groups:
-                      tag_groups[t] = []
-                  tag_groups[t].append(p["name"])
+          final = {
+              "proxies": merged_proxies,
+              "proxy-groups": list(merged_groups.values()),
+              "rules": dedup_rules
+          }
 
-          # 生成分组，只生成一次节点列表
-          for t, nodes in tag_groups.items():
-              merged["proxy-groups"].append({
-                  "name": t,
-                  "type": "select",
-                  "proxies": nodes  # 一次性列表
-              })
-
-          # 注入所有节点到 URL-TEST / SELECT / FALLBACK / LOAD-BALANCE 分组
-          proxy_names = [p["name"] for p in merged["proxies"]]
-          for g in merged["proxy-groups"]:
-              if g.get("type", "").upper() in ["SELECT", "URL-TEST", "FALLBACK", "LOAD-BALANCE"]:
-                  # 如果不是标签/地区分组，直接覆盖一次节点列表
-                  if g["name"] not in tag_groups:
-                      g["proxies"] = proxy_names
-
-          # 输出 final.yaml
           with open("final.yaml", "w", encoding="utf-8") as f:
-              yaml.dump(merged, f, allow_unicode=True, sort_keys=False)
+              yaml.dump(final, f, allow_unicode=True, sort_keys=False)
 
-          print("✔ final.yaml generated (each group has one proxies list)")
+          print("✔ final.yaml generated (merged proxies, rules, proxy-groups)")
           EOF
 
       - name: Run merge script
@@ -145,5 +121,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add final.yaml
-          git commit -m "Auto update final.yaml (single proxies list per group)" || echo "No changes"
+          git commit -m "Auto update final.yaml (merged proxies, rules, proxy-groups)" || echo "No changes"
           git push
