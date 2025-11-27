@@ -230,8 +230,97 @@ proxies:
   up: 11 Mbps
   down: 55 Mbps
 - name: dongtaiwang.com_0-6
-  type: anytls
+  type: hysteria
   server: 62.210.10.140
+  port: 42248
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_0-7
+  server: 2001:bc8:1203:106::100
+  port: 55111
+  type: tuic
+  uuid: 5ae31731-78ac-483a-b524-011d05072ef5
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_1-3
+  server: 2001:bc8:1203:106::101
+  port: 55111
+  type: tuic
+  uuid: 5ae31731-78ac-483a-b524-011d05072ef5
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_2-3
+  server: 2001:bc8:1203:106::102
+  port: 55111
+  type: tuic
+  uuid: 5ae31731-78ac-483a-b524-011d05072ef5
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_3-3
+  server: 2001:bc8:1203:106::103
+  port: 55111
+  type: tuic
+  uuid: 5ae31731-78ac-483a-b524-011d05072ef5
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_4-3
+  server: 2001:bc8:1203:106::104
+  port: 55111
+  type: tuic
+  uuid: 5ae31731-78ac-483a-b524-011d05072ef5
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_0-8
+  type: hysteria
+  server: 208.87.243.151
+  port: 10023
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_0-9
+  type: anytls
+  server: fan2.856098.xyz
   port: 8443
   password: dongtaiwang.com
   client-fingerprint: chrome
@@ -243,35 +332,7 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: dongtaiwang.com_0-7
-  type: vless
-  server: 2001:bc8:32d7:158::5
-  port: 10033
-  uuid: 56618bde-5a09-4ef8-ae56-6e7a8d69ec67
-  network: grpc
-  udp: true
-  tls: true
-  flow: null
-  servername: nijigen-works.jp
-  reality-opts:
-    public-key: m1ORavmKKsF8kn6JfNF1m35wRORu8c6YLyxpSfyiYQ0
-    short-id: dfdfb0e2e2d400c4
-  grpc-opts:
-    grpc-service-name: FhwHiFzK
-  client-fingerprint: chrome
-- name: dongtaiwang.com_0-8
-  type: hysteria
-  server: 2001:bc8:1203:106::16
-  port: 23880
-  auth-str: dongtaiwang.com
-  sni: bing.com
-  skip-cert-verify: true
-  alpn:
-  - h3
-  protocol: udp
-  up: 11 Mbps
-  down: 55 Mbps
-- name: dongtaiwang.com_0-9
+- name: dongtaiwang.com_0-10
   server: 62.210.10.113
   port: 33998
   type: tuic
@@ -284,7 +345,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_1-3
+- name: dongtaiwang.com_1-4
   type: anytls
   server: fan3.394615.xyz
   port: 8443
@@ -298,7 +359,7 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: dongtaiwang.com_2-3
+- name: dongtaiwang.com_2-4
   server: 2001:bc8:32d7:306::124
   port: 33998
   type: tuic
@@ -311,7 +372,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_3-3
+- name: dongtaiwang.com_3-4
   server: 2001:bc8:32d7:306::125
   port: 33998
   type: tuic
@@ -324,7 +385,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_4-3
+- name: dongtaiwang.com_4-4
   server: 2001:bc8:32d7:306::126
   port: 33998
   type: tuic
@@ -337,7 +398,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_0-10
+- name: dongtaiwang.com_0-11
   type: hysteria
   server: 208.87.243.151
   port: 10023
@@ -349,7 +410,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_0-11
+- name: dongtaiwang.com_0-12
   type: hysteria
   server: 2001:bc8:1203:106::16
   port: 23880
@@ -361,7 +422,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_0-12
+- name: dongtaiwang.com_0-13
   type: anytls
   server: fan2.856098.xyz
   port: 8443
@@ -399,15 +460,20 @@ proxy-groups:
   - dongtaiwang.com_4-2
   - dongtaiwang.com_0-6
   - dongtaiwang.com_0-7
-  - dongtaiwang.com_0-8
-  - dongtaiwang.com_0-9
   - dongtaiwang.com_1-3
   - dongtaiwang.com_2-3
   - dongtaiwang.com_3-3
   - dongtaiwang.com_4-3
+  - dongtaiwang.com_0-8
+  - dongtaiwang.com_0-9
   - dongtaiwang.com_0-10
+  - dongtaiwang.com_1-4
+  - dongtaiwang.com_2-4
+  - dongtaiwang.com_3-4
+  - dongtaiwang.com_4-4
   - dongtaiwang.com_0-11
   - dongtaiwang.com_0-12
+  - dongtaiwang.com_0-13
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
@@ -634,10 +700,9 @@ proxy-groups:
   type: select
   proxies: *id001
 - name: ♻️ 自动选择-7
-  type: url-test
+  type: fallback
   url: https://www.gstatic.com/generate_204
-  interval: 300
-  tolerance: 50
+  interval: 5
   proxies: *id001
 - name: 🌍 国外媒体-7
   type: select
@@ -667,9 +732,10 @@ proxy-groups:
   type: select
   proxies: *id001
 - name: ♻️ 自动选择-8
-  type: fallback
+  type: url-test
   url: https://www.gstatic.com/generate_204
-  interval: 5
+  interval: 300
+  tolerance: 50
   proxies: *id001
 - name: 🌍 国外媒体-8
   type: select
@@ -731,10 +797,9 @@ proxy-groups:
   type: select
   proxies: *id001
 - name: ♻️ 自动选择-10
-  type: url-test
+  type: fallback
   url: https://www.gstatic.com/generate_204
-  interval: 300
-  tolerance: 50
+  interval: 5
   proxies: *id001
 - name: 🌍 国外媒体-10
   type: select
@@ -764,9 +829,10 @@ proxy-groups:
   type: select
   proxies: *id001
 - name: ♻️ 自动选择-11
-  type: fallback
+  type: url-test
   url: https://www.gstatic.com/generate_204
-  interval: 5
+  interval: 300
+  tolerance: 50
   proxies: *id001
 - name: 🌍 国外媒体-11
   type: select
@@ -822,6 +888,38 @@ proxy-groups:
   type: select
   proxies: *id001
 - name: 🐟 漏网之鱼-12
+  type: select
+  proxies: *id001
+- name: 🚀 节点选择-13
+  type: select
+  proxies: *id001
+- name: ♻️ 自动选择-13
+  type: fallback
+  url: https://www.gstatic.com/generate_204
+  interval: 5
+  proxies: *id001
+- name: 🌍 国外媒体-13
+  type: select
+  proxies: *id001
+- name: 📲 电报信息-13
+  type: select
+  proxies: *id001
+- name: Ⓜ️ 微软服务-13
+  type: select
+  proxies: *id001
+- name: 🍎 苹果服务-13
+  type: select
+  proxies: *id001
+- name: 🎯 全球直连-13
+  type: select
+  proxies: *id001
+- name: 🛑 全球拦截-13
+  type: select
+  proxies: *id001
+- name: 🍃 应用净化-13
+  type: select
+  proxies: *id001
+- name: 🐟 漏网之鱼-13
   type: select
   proxies: *id001
 rules:
