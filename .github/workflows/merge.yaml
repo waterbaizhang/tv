@@ -1,34 +1,25 @@
-name: Merge Clash Configs
+name: Build Clash Config
 
 on:
   schedule:
-    - cron: "0 0 * * *"  # 每天 UTC 0 点执行
+    - cron: "0 0 * * *"   # 每天 0 点执行
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Install python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
+      - name: Install Python YAML module
+        run: pip install pyyaml requests
 
-      - name: Install dependencies
-        run: |
-          pip install pyyaml requests
-
-      - name: Run merge script
+      - name: Build merged final.yaml
         run: |
           cat > merge.py << 'EOF'
-          import requests, yaml, copy, re
+          import yaml, requests, sys
 
           urls = [
               "https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ipp/clash.meta2/1/config.yaml",
@@ -49,81 +40,65 @@ jobs:
               "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/quick/4/config.yaml",
           ]
 
-          final = {
-              "proxies": [],
-              "proxy-groups": [],
-              "rules": []
+          merged = {
+             "proxies": [],
+             "proxy-groups": [],
+             "rules": []
           }
 
-          def rename_if_exists(items, name):
-              base = name
-              i = 1
-              while any(item["name"] == name for item in items):
-                  name = f"{base}-{i}"
-                  i += 1
-              return name
-
-          print("Downloading and merging files...")
-          for url in urls:
+          def safe_request(url):
               try:
-                  text = requests.get(url, timeout=15).text
-                  data = yaml.safe_load(text)
-                  if not isinstance(data, dict):
-                      print(f"Skipped invalid YAML: {url}")
-                      continue
+                  r = requests.get(url, timeout=10)
+                  if r.status_code == 200:
+                      return r.text
+              except:
+                  return None
+              return None
 
-                  # Merge proxies
-                  if "proxies" in data:
-                      for p in data["proxies"]:
-                          p = copy.deepcopy(p)
-                          p["name"] = rename_if_exists(final["proxies"], p["name"])
-                          final["proxies"].append(p)
-
-                  # Merge proxy-groups
-                  if "proxy-groups" in data:
-                      for g in data["proxy-groups"]:
-                          g = copy.deepcopy(g)
-                          g["name"] = rename_if_exists(final["proxy-groups"], g["name"])
-                          # 修复 group 内部引用节点
-                          if "proxies" in g:
-                              new_list = []
-                              for p_name in g["proxies"]:
-                                  # 如果节点存在，保留原名；不存在跳过
-                                  if any(pr["name"] == p_name for pr in final["proxies"]):
-                                      new_list.append(p_name)
-                                  else:
-                                      # 跳过无效节点
-                                      print(f"Skipped invalid node '{p_name}' in group '{g['name']}'")
-                              g["proxies"] = new_list
-
-                          # 如果 group 是 url-test，保留 type
-                          if g.get("type") == "url-test":
-                              g["type"] = "url-test"
-                              # url-test 自动检测最佳节点，Clash 会自己选择
-                              # 不用在脚本里 ping 测速，保持 Clash 内置功能
-                          final["proxy-groups"].append(g)
-
-                  # Merge rules
-                  if "rules" in data:
-                      final["rules"].extend(data["rules"])
-
-              except Exception as e:
-                  print(f"Failed to load {url}: {e}")
+          print("Downloading…")
+          for url in urls:
+              text = safe_request(url)
+              if not text:
+                  print("❌ Skip invalid URL:", url)
                   continue
 
-          # 输出 final.yaml
+              try:
+                  data = yaml.safe_load(text)
+              except:
+                  print("❌ Skip invalid YAML:", url)
+                  continue
+
+              if "proxies" in data:
+                  for p in data["proxies"]:
+                      name = p["name"]
+                      # rename duplicates
+                      if any(x["name"] == name for x in merged["proxies"]):
+                          count = sum(1 for x in merged["proxies"] if x["name"].startswith(name))
+                          p["name"] = f"{name}-{count}"
+                      merged["proxies"].append(p)
+
+              if "proxy-groups" in data:
+                  for g in data["proxy-groups"]:
+                      # merge rules + keep unique groups
+                      names = [x["name"] for x in merged["proxy-groups"]]
+                      if g["name"] not in names:
+                          merged["proxy-groups"].append(g)
+
+              if "rules" in data:
+                  merged["rules"].extend(data["rules"])
+
+          # --- 关键：将所有节点自动注入 proxy-groups（按类型区分） ---
+          proxy_names = [p["name"] for p in merged["proxies"]]
+
+          for group in merged["proxy-groups"]:
+              gtype = group.get("type", "").upper()
+
+              # SELECT / URL-TEST / FALLBACK / LOAD-BALANCE 自动添加节点
+              if gtype in ["SELECT", "URL-TEST", "FALLBACK", "LOAD-BALANCE"]:
+                  group["proxies"] = proxy_names
+
+          # 输出最终文件
           with open("final.yaml", "w", encoding="utf-8") as f:
-              yaml.dump(final, f, allow_unicode=True)
+              yaml.dump(merged, f, allow_unicode=True, sort_keys=False)
 
-          print("Merge complete! final.yaml generated.")
-          EOF
-
-          python3 merge.py
-
-      - name: Commit & Push
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add final.yaml
-          git commit -m "Auto update final.yaml" || echo "No changes"
-          git push
+          print("✔ final.
