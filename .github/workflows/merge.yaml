@@ -2,7 +2,7 @@ name: Build Clash Config
 
 on:
   schedule:
-    - cron: "0 0 * * *"   # 每天 0 点执行
+    - cron: "0 0 * * *"   # 每天 UTC 0 点执行
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       - name: Build merged final.yaml
         run: |
           cat > merge.py << 'EOF'
-          import yaml, requests, sys
+          import yaml, requests, collections
 
           urls = [
               "https://gitlab.com/free9999/ipupdate/-/raw/master/backup/img/1/2/ipp/clash.meta2/1/config.yaml",
@@ -40,11 +40,15 @@ jobs:
               "https://www.gitlabip.xyz/Alvin9999/PAC/refs/heads/master/backup/img/1/2/ipp/quick/4/config.yaml",
           ]
 
-          merged = {
-             "proxies": [],
-             "proxy-groups": [],
-             "rules": []
-          }
+          merged = {"proxies": [], "proxy-groups": [], "rules": []}
+
+          def rename_if_exists(items, name):
+              base = name
+              i = 1
+              while any(x["name"] == name for x in items):
+                  name = f"{base}-{i}"
+                  i += 1
+              return name
 
           def safe_request(url):
               try:
@@ -55,50 +59,86 @@ jobs:
                   return None
               return None
 
-          print("Downloading…")
+          print("Downloading and merging files...")
           for url in urls:
               text = safe_request(url)
               if not text:
                   print("❌ Skip invalid URL:", url)
                   continue
-
               try:
                   data = yaml.safe_load(text)
+                  if not isinstance(data, dict):
+                      print("❌ Invalid YAML:", url)
+                      continue
               except:
-                  print("❌ Skip invalid YAML:", url)
+                  print("❌ Failed to parse YAML:", url)
                   continue
 
+              # Merge proxies
               if "proxies" in data:
                   for p in data["proxies"]:
-                      name = p["name"]
-                      # rename duplicates
-                      if any(x["name"] == name for x in merged["proxies"]):
-                          count = sum(1 for x in merged["proxies"] if x["name"].startswith(name))
-                          p["name"] = f"{name}-{count}"
-                      merged["proxies"].append(p)
+                      p_copy = p.copy()
+                      p_copy["name"] = rename_if_exists(merged["proxies"], p_copy["name"])
+                      merged["proxies"].append(p_copy)
 
+              # Merge proxy-groups
               if "proxy-groups" in data:
                   for g in data["proxy-groups"]:
-                      # merge rules + keep unique groups
-                      names = [x["name"] for x in merged["proxy-groups"]]
-                      if g["name"] not in names:
-                          merged["proxy-groups"].append(g)
+                      g_copy = g.copy()
+                      if any(x["name"] == g_copy["name"] for x in merged["proxy-groups"]):
+                          count = sum(1 for x in merged["proxy-groups"] if x["name"].startswith(g_copy["name"]))
+                          g_copy["name"] = f"{g_copy['name']}-{count}"
+                      merged["proxy-groups"].append(g_copy)
 
+              # Merge rules
               if "rules" in data:
                   merged["rules"].extend(data["rules"])
 
-          # --- 关键：将所有节点自动注入 proxy-groups（按类型区分） ---
+          # --- 去除重复规则 ---
+          merged["rules"] = list(collections.OrderedDict.fromkeys(merged["rules"]))
+
+          # --- 自动生成标签/地区分组 ---
+          tag_groups = {}  # key=tag/region, value=list of node names
+          for p in merged["proxies"]:
+              tags = []
+              if "tag" in p:
+                  tags.append(p["tag"])
+              if "region" in p:
+                  tags.append(p["region"])
+              for t in tags:
+                  if t not in tag_groups:
+                      tag_groups[t] = []
+                  tag_groups[t].append(p["name"])
+
+          for t, nodes in tag_groups.items():
+              merged["proxy-groups"].append({
+                  "name": t,
+                  "type": "select",
+                  "proxies": nodes
+              })
+
+          # --- 注入所有节点到现有 proxy-groups (url-test / fallback / select / load-balance) ---
           proxy_names = [p["name"] for p in merged["proxies"]]
+          for g in merged["proxy-groups"]:
+              if g.get("type", "").upper() in ["SELECT", "URL-TEST", "FALLBACK", "LOAD-BALANCE"]:
+                  # 如果是新生成的标签分组，保留自己节点；否则覆盖所有节点
+                  if g["name"] not in tag_groups:
+                      g["proxies"] = proxy_names
 
-          for group in merged["proxy-groups"]:
-              gtype = group.get("type", "").upper()
-
-              # SELECT / URL-TEST / FALLBACK / LOAD-BALANCE 自动添加节点
-              if gtype in ["SELECT", "URL-TEST", "FALLBACK", "LOAD-BALANCE"]:
-                  group["proxies"] = proxy_names
-
-          # 输出最终文件
+          # 输出 final.yaml（覆盖原文件）
           with open("final.yaml", "w", encoding="utf-8") as f:
               yaml.dump(merged, f, allow_unicode=True, sort_keys=False)
 
-          print("✔ final.
+          print("✔ final.yaml generated (overwritten with dedup rules + tag/region groups)")
+          EOF
+
+      - name: Run merge script
+        run: python3 merge.py
+
+      - name: Commit & Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add final.yaml
+          git commit -m "Auto update final.yaml with dedup rules and tag/region groups" || echo "No changes"
+          git push
