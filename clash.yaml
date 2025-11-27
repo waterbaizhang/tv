@@ -5,18 +5,21 @@ mode: Rule
 log-level: info
 proxies:
 - name: dongtaiwang.com_0
-  server: 51.159.107.20
-  port: 55255
-  type: tuic
-  uuid: 79529c4a-4028-4701-a6d6-4e94b78b50fd
-  password: dongtaiwang.com
-  alpn:
-  - h3
-  sni: bing.com
-  skip-cert-verify: true
-  reduce-rtt: true
-  udp-relay-mode: native
-  congestion-controller: bbr
+  type: vless
+  server: 2001:bc8:32d7:158::5
+  port: 10033
+  uuid: 56618bde-5a09-4ef8-ae56-6e7a8d69ec67
+  network: grpc
+  udp: true
+  tls: true
+  flow: null
+  servername: nijigen-works.jp
+  reality-opts:
+    public-key: m1ORavmKKsF8kn6JfNF1m35wRORu8c6YLyxpSfyiYQ0
+    short-id: dfdfb0e2e2d400c4
+  grpc-opts:
+    grpc-service-name: FhwHiFzK
+  client-fingerprint: chrome
 - name: dongtaiwang.com_1
   type: anytls
   server: 62.210.11.74
@@ -74,13 +77,6 @@ proxy-groups:
   - "\u267B\uFE0F \u81EA\u52A8\u9009\u62E9"
   - DIRECT
   - dongtaiwang.com_0
-  - dongtaiwang.com_1
-  - dongtaiwang.com_2
-  - dongtaiwang.com_3
-  - dongtaiwang.com_4
-  - "\u267B\uFE0F \u81EA\u52A8\u9009\u62E9"
-  - DIRECT
-  - dongtaiwang.com_0
   - "\u267B\uFE0F \u81EA\u52A8\u9009\u62E9"
   - DIRECT
   - dongtaiwang.com_0
@@ -112,15 +108,11 @@ proxy-groups:
   - dongtaiwang.com_3
   - dongtaiwang.com_4
 - name: "\u267B\uFE0F \u81EA\u52A8\u9009\u62E9"
-  type: fallback
+  type: url-test
   url: https://www.gstatic.com/generate_204
-  interval: 5
+  interval: 300
+  tolerance: 50
   proxies:
-  - dongtaiwang.com_0
-  - dongtaiwang.com_1
-  - dongtaiwang.com_2
-  - dongtaiwang.com_3
-  - dongtaiwang.com_4
   - dongtaiwang.com_0
   - dongtaiwang.com_0
   - dongtaiwang.com_1
@@ -143,14 +135,6 @@ proxy-groups:
 - name: "\U0001F30D \u56FD\u5916\u5A92\u4F53"
   type: select
   proxies:
-  - "\U0001F680 \u8282\u70B9\u9009\u62E9"
-  - "\u267B\uFE0F \u81EA\u52A8\u9009\u62E9"
-  - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
-  - dongtaiwang.com_0
-  - dongtaiwang.com_1
-  - dongtaiwang.com_2
-  - dongtaiwang.com_3
-  - dongtaiwang.com_4
   - "\U0001F680 \u8282\u70B9\u9009\u62E9"
   - "\u267B\uFE0F \u81EA\u52A8\u9009\u62E9"
   - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
@@ -197,13 +181,6 @@ proxy-groups:
   - "\U0001F680 \u8282\u70B9\u9009\u62E9"
   - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
   - dongtaiwang.com_0
-  - dongtaiwang.com_1
-  - dongtaiwang.com_2
-  - dongtaiwang.com_3
-  - dongtaiwang.com_4
-  - "\U0001F680 \u8282\u70B9\u9009\u62E9"
-  - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
-  - dongtaiwang.com_0
   - "\U0001F680 \u8282\u70B9\u9009\u62E9"
   - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
   - dongtaiwang.com_0
@@ -240,13 +217,6 @@ proxy-groups:
   - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
   - "\U0001F680 \u8282\u70B9\u9009\u62E9"
   - dongtaiwang.com_0
-  - dongtaiwang.com_1
-  - dongtaiwang.com_2
-  - dongtaiwang.com_3
-  - dongtaiwang.com_4
-  - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
-  - "\U0001F680 \u8282\u70B9\u9009\u62E9"
-  - dongtaiwang.com_0
   - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
   - "\U0001F680 \u8282\u70B9\u9009\u62E9"
   - dongtaiwang.com_0
@@ -280,13 +250,6 @@ proxy-groups:
 - name: "\U0001F34E \u82F9\u679C\u670D\u52A1"
   type: select
   proxies:
-  - "\U0001F680 \u8282\u70B9\u9009\u62E9"
-  - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
-  - dongtaiwang.com_0
-  - dongtaiwang.com_1
-  - dongtaiwang.com_2
-  - dongtaiwang.com_3
-  - dongtaiwang.com_4
   - "\U0001F680 \u8282\u70B9\u9009\u62E9"
   - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
   - dongtaiwang.com_0
@@ -344,14 +307,9 @@ proxy-groups:
   - DIRECT
   - "\U0001F680 \u8282\u70B9\u9009\u62E9"
   - "\u267B\uFE0F \u81EA\u52A8\u9009\u62E9"
-  - DIRECT
-  - "\U0001F680 \u8282\u70B9\u9009\u62E9"
-  - "\u267B\uFE0F \u81EA\u52A8\u9009\u62E9"
 - name: "\U0001F6D1 \u5168\u7403\u62E6\u622A"
   type: select
   proxies:
-  - REJECT
-  - DIRECT
   - REJECT
   - DIRECT
   - REJECT
@@ -383,19 +341,9 @@ proxy-groups:
   - DIRECT
   - REJECT
   - DIRECT
-  - REJECT
-  - DIRECT
 - name: "\U0001F41F \u6F0F\u7F51\u4E4B\u9C7C"
   type: select
   proxies:
-  - "\U0001F680 \u8282\u70B9\u9009\u62E9"
-  - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
-  - "\u267B\uFE0F \u81EA\u52A8\u9009\u62E9"
-  - dongtaiwang.com_0
-  - dongtaiwang.com_1
-  - dongtaiwang.com_2
-  - dongtaiwang.com_3
-  - dongtaiwang.com_4
   - "\U0001F680 \u8282\u70B9\u9009\u62E9"
   - "\U0001F3AF \u5168\u7403\u76F4\u8FDE"
   - "\u267B\uFE0F \u81EA\u52A8\u9009\u62E9"
@@ -437,7 +385,6 @@ proxy-groups:
   - dongtaiwang.com_3
   - dongtaiwang.com_4
 rules:
-- "MATCH,\U0001F680 \u8282\u70B9\u9009\u62E9"
 - "MATCH,\U0001F680 \u8282\u70B9\u9009\u62E9"
 - "MATCH,\U0001F680 \u8282\u70B9\u9009\u62E9"
 - "MATCH,\U0001F680 \u8282\u70B9\u9009\u62E9"
