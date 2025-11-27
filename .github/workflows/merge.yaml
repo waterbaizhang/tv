@@ -2,7 +2,7 @@ name: Build Clash Config
 
 on:
   schedule:
-    - cron: "0 0 * * *"   # 每天 UTC 0 点执行
+    - cron: "0 0 * * *"  
   workflow_dispatch:
 
 jobs:
@@ -98,10 +98,10 @@ jobs:
               if "rules" in data:
                   merged["rules"].extend(data["rules"])
 
-          # --- 去除重复规则 ---
+          # 去除重复 rules
           merged["rules"] = list(collections.OrderedDict.fromkeys(merged["rules"]))
 
-          # --- 自动生成标签/地区分组 ---
+          # --- 自动生成 tag/region 分组 ---
           tag_groups = {}  # key=tag/region, value=list of node names
           for p in merged["proxies"]:
               tags = []
@@ -114,26 +114,27 @@ jobs:
                       tag_groups[t] = []
                   tag_groups[t].append(p["name"])
 
+          # 生成分组，只生成一次节点列表
           for t, nodes in tag_groups.items():
               merged["proxy-groups"].append({
                   "name": t,
                   "type": "select",
-                  "proxies": nodes
+                  "proxies": nodes  # 一次性列表
               })
 
-          # --- 注入所有节点到现有 proxy-groups (url-test / fallback / select / load-balance) ---
+          # 注入所有节点到 URL-TEST / SELECT / FALLBACK / LOAD-BALANCE 分组
           proxy_names = [p["name"] for p in merged["proxies"]]
           for g in merged["proxy-groups"]:
               if g.get("type", "").upper() in ["SELECT", "URL-TEST", "FALLBACK", "LOAD-BALANCE"]:
-                  # 如果是新生成的标签分组，保留自己节点；否则覆盖所有节点
+                  # 如果不是标签/地区分组，直接覆盖一次节点列表
                   if g["name"] not in tag_groups:
                       g["proxies"] = proxy_names
 
-          # 输出 final.yaml（覆盖原文件）
+          # 输出 final.yaml
           with open("final.yaml", "w", encoding="utf-8") as f:
               yaml.dump(merged, f, allow_unicode=True, sort_keys=False)
 
-          print("✔ final.yaml generated (overwritten with dedup rules + tag/region groups)")
+          print("✔ final.yaml generated (each group has one proxies list)")
           EOF
 
       - name: Run merge script
@@ -144,5 +145,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add final.yaml
-          git commit -m "Auto update final.yaml with dedup rules and tag/region groups" || echo "No changes"
+          git commit -m "Auto update final.yaml (single proxies list per group)" || echo "No changes"
           git push
