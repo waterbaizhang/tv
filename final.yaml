@@ -1,23 +1,9 @@
-secret: dongtaiwang.com
-mixed-port: 7890
-allow-lan: false
-log-level: info
-dns:
-  enabled: true
-  nameserver:
-  - 119.29.29.29
-  - 223.5.5.5
-  fallback-filter:
-    geoip: false
-    ipcidr:
-    - 240.0.0.0/4
-    - 0.0.0.0/32
 proxies:
 - name: dongtaiwang.com_0
-  server: 51.159.107.20
-  port: 55255
+  server: 62.210.99.62
+  port: 50088
   type: tuic
-  uuid: 79529c4a-4028-4701-a6d6-4e94b78b50fd
+  uuid: 93959440-4f83-4352-b939-906b1fd3fa59
   password: dongtaiwang.com
   alpn:
   - h3
@@ -42,7 +28,7 @@ proxies:
   skip-cert-verify: true
 - name: dongtaiwang.com_2
   type: hysteria
-  server: 51.159.107.20
+  server: 62.210.99.62
   port: 20001
   auth-str: dongtaiwang.com
   sni: apple.com
@@ -54,7 +40,7 @@ proxies:
   down: 55 Mbps
 - name: dongtaiwang.com_3
   type: hysteria
-  server: 2001:bc8:1203:25::3
+  server: 2001:bc8:32d7:402::3
   port: 20001
   auth-str: dongtaiwang.com
   sni: apple.com
@@ -66,7 +52,7 @@ proxies:
   down: 55 Mbps
 - name: dongtaiwang.com_4
   type: hysteria
-  server: 2001:bc8:1203:25::4
+  server: 2001:bc8:32d7:402::4
   port: 20001
   auth-str: dongtaiwang.com
   sni: apple.com
@@ -244,6 +230,22 @@ proxies:
   up: 11 Mbps
   down: 55 Mbps
 - name: dongtaiwang.com_0-6
+  type: vless
+  server: 2001:bc8:32d7:158::5
+  port: 10033
+  uuid: 56618bde-5a09-4ef8-ae56-6e7a8d69ec67
+  network: grpc
+  udp: true
+  tls: true
+  flow: null
+  servername: nijigen-works.jp
+  reality-opts:
+    public-key: m1ORavmKKsF8kn6JfNF1m35wRORu8c6YLyxpSfyiYQ0
+    short-id: dfdfb0e2e2d400c4
+  grpc-opts:
+    grpc-service-name: FhwHiFzK
+  client-fingerprint: chrome
+- name: dongtaiwang.com_0-7
   server: 62.210.10.113
   port: 33998
   type: tuic
@@ -309,7 +311,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_0-7
+- name: dongtaiwang.com_0-8
   type: hysteria
   server: 208.87.243.151
   port: 10023
@@ -321,7 +323,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_0-8
+- name: dongtaiwang.com_0-9
   type: hysteria
   server: 2001:bc8:1203:106::16
   port: 23880
@@ -333,7 +335,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_0-9
+- name: dongtaiwang.com_0-10
   type: anytls
   server: fan2.856098.xyz
   port: 8443
@@ -370,13 +372,14 @@ proxy-groups:
   - dongtaiwang.com_3-2
   - dongtaiwang.com_4-2
   - dongtaiwang.com_0-6
+  - dongtaiwang.com_0-7
   - dongtaiwang.com_1-3
   - dongtaiwang.com_2-3
   - dongtaiwang.com_3-3
   - dongtaiwang.com_4-3
-  - dongtaiwang.com_0-7
   - dongtaiwang.com_0-8
   - dongtaiwang.com_0-9
+  - dongtaiwang.com_0-10
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
