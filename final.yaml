@@ -230,6 +230,95 @@ proxies:
   up: 11 Mbps
   down: 55 Mbps
 - name: dongtaiwang.com_0-6
+  server: 62.210.99.62
+  port: 50088
+  type: tuic
+  uuid: 93959440-4f83-4352-b939-906b1fd3fa59
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: bing.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_1-3
+  type: anytls
+  server: 62.210.11.74
+  port: 8443
+  password: dongtaiwang.com
+  client-fingerprint: chrome
+  udp: true
+  idle-session-check-interval: 30
+  idle-session-timeout: 30
+  min-idle-session: 0
+  alpn:
+  - h2
+  - http/1.1
+  skip-cert-verify: true
+- name: dongtaiwang.com_2-3
+  type: hysteria
+  server: 62.210.99.62
+  port: 20001
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_3-3
+  type: hysteria
+  server: 2001:bc8:32d7:402::3
+  port: 20001
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_4-3
+  type: hysteria
+  server: 2001:bc8:32d7:402::4
+  port: 20001
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_0-7
+  type: anytls
+  server: 62.210.10.140
+  port: 8443
+  password: dongtaiwang.com
+  client-fingerprint: chrome
+  udp: true
+  idle-session-check-interval: 30
+  idle-session-timeout: 30
+  min-idle-session: 0
+  alpn:
+  - h2
+  - http/1.1
+  skip-cert-verify: true
+- name: dongtaiwang.com_0-8
+  type: hysteria
+  server: 62.210.10.140
+  port: 42248
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_0-9
   type: vless
   server: 2001:bc8:32d7:158::5
   port: 10033
@@ -245,7 +334,7 @@ proxies:
   grpc-opts:
     grpc-service-name: FhwHiFzK
   client-fingerprint: chrome
-- name: dongtaiwang.com_0-7
+- name: dongtaiwang.com_0-10
   server: 62.210.10.113
   port: 33998
   type: tuic
@@ -258,7 +347,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_1-3
+- name: dongtaiwang.com_1-4
   type: anytls
   server: fan3.394615.xyz
   port: 8443
@@ -272,7 +361,7 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: dongtaiwang.com_2-3
+- name: dongtaiwang.com_2-4
   server: 2001:bc8:32d7:306::124
   port: 33998
   type: tuic
@@ -285,7 +374,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_3-3
+- name: dongtaiwang.com_3-4
   server: 2001:bc8:32d7:306::125
   port: 33998
   type: tuic
@@ -298,7 +387,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_4-3
+- name: dongtaiwang.com_4-4
   server: 2001:bc8:32d7:306::126
   port: 33998
   type: tuic
@@ -311,7 +400,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_0-8
+- name: dongtaiwang.com_0-11
   type: hysteria
   server: 208.87.243.151
   port: 10023
@@ -323,7 +412,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_0-9
+- name: dongtaiwang.com_0-12
   type: hysteria
   server: 2001:bc8:1203:106::16
   port: 23880
@@ -335,7 +424,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_0-10
+- name: dongtaiwang.com_0-13
   type: anytls
   server: fan2.856098.xyz
   port: 8443
@@ -372,14 +461,21 @@ proxy-groups:
   - dongtaiwang.com_3-2
   - dongtaiwang.com_4-2
   - dongtaiwang.com_0-6
-  - dongtaiwang.com_0-7
   - dongtaiwang.com_1-3
   - dongtaiwang.com_2-3
   - dongtaiwang.com_3-3
   - dongtaiwang.com_4-3
+  - dongtaiwang.com_0-7
   - dongtaiwang.com_0-8
   - dongtaiwang.com_0-9
   - dongtaiwang.com_0-10
+  - dongtaiwang.com_1-4
+  - dongtaiwang.com_2-4
+  - dongtaiwang.com_3-4
+  - dongtaiwang.com_4-4
+  - dongtaiwang.com_0-11
+  - dongtaiwang.com_0-12
+  - dongtaiwang.com_0-13
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
