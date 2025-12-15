@@ -159,9 +159,9 @@ proxies:
       down: 100
 - name: dongtaiwang.com_0-3
   type: vless
-  server: 2a14:7583:2977::a
-  port: 10494
-  uuid: 9328c397-1485-4bd0-a214-cae442ae828c
+  server: 2001:bc8:32d7:1cb::10
+  port: 12618
+  uuid: 582d6615-b8a3-4674-96c1-5b087563b091
   network: tcp
   udp: true
   tls: true
@@ -169,8 +169,8 @@ proxies:
   servername: itunes.apple.com
   client-fingerprint: chrome
   reality-opts:
-    public-key: LdkOYdsF39LEUZ9pQgQX1ql_UjMjmn308EMs-n27cEQ
-    short-id: 7e5f09e994395f10
+    public-key: Y3mEtIPC1rjwUrwJ4UsqX6QeZnJUoBN6hG2rRSQx4Rw
+    short-id: 8c4e4d7198e3631c
   smux:
     enabled: true
     protocol: h2mux
@@ -349,110 +349,6 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: dongtaiwang.com_0-11
-  server: 62.210.10.113
-  port: 33998
-  type: tuic
-  uuid: 909212b8-5d67-4532-885e-7a6b5e724ab8
-  password: dongtaiwang.com
-  alpn:
-  - h3
-  sni: bing.com
-  skip-cert-verify: true
-  reduce-rtt: true
-  udp-relay-mode: native
-  congestion-controller: bbr
-- name: dongtaiwang.com_1-5
-  type: anytls
-  server: fan3.394615.xyz
-  port: 8443
-  password: dongtaiwang.com
-  client-fingerprint: chrome
-  udp: true
-  idle-session-check-interval: 30
-  idle-session-timeout: 30
-  min-idle-session: 0
-  alpn:
-  - h2
-  - http/1.1
-  skip-cert-verify: true
-- name: dongtaiwang.com_2-3
-  server: 2001:bc8:32d7:306::124
-  port: 33998
-  type: tuic
-  uuid: 909212b8-5d67-4532-885e-7a6b5e724ab8
-  password: dongtaiwang.com
-  alpn:
-  - h3
-  sni: bing.com
-  skip-cert-verify: true
-  reduce-rtt: true
-  udp-relay-mode: native
-  congestion-controller: bbr
-- name: dongtaiwang.com_3-2
-  server: 2001:bc8:32d7:306::125
-  port: 33998
-  type: tuic
-  uuid: 909212b8-5d67-4532-885e-7a6b5e724ab8
-  password: dongtaiwang.com
-  alpn:
-  - h3
-  sni: bing.com
-  skip-cert-verify: true
-  reduce-rtt: true
-  udp-relay-mode: native
-  congestion-controller: bbr
-- name: dongtaiwang.com_4-2
-  server: 2001:bc8:32d7:306::126
-  port: 33998
-  type: tuic
-  uuid: 909212b8-5d67-4532-885e-7a6b5e724ab8
-  password: dongtaiwang.com
-  alpn:
-  - h3
-  sni: bing.com
-  skip-cert-verify: true
-  reduce-rtt: true
-  udp-relay-mode: native
-  congestion-controller: bbr
-- name: dongtaiwang.com_0-12
-  type: hysteria
-  server: 208.87.243.151
-  port: 10023
-  auth-str: dongtaiwang.com
-  sni: apple.com
-  skip-cert-verify: true
-  alpn:
-  - h3
-  protocol: udp
-  up: 11 Mbps
-  down: 55 Mbps
-- name: dongtaiwang.com_0-13
-  type: hysteria
-  server: 2001:bc8:32d7:14f::4
-  port: 23880
-  auth-str: dongtaiwang.com
-  sni: bing.com
-  skip-cert-verify: true
-  alpn:
-  - h3
-  protocol: udp
-  up: 11 Mbps
-  down: 55 Mbps
-- name: dongtaiwang.com_0-14
-  type: anytls
-  server: fan2.856098.xyz
-  port: 8443
-  password: dongtaiwang.com
-  client-fingerprint: chrome
-  udp: true
-  idle-session-check-interval: 30
-  idle-session-timeout: 30
-  min-idle-session: 0
-  alpn:
-  - h2
-  - http/1.1
-  skip-cert-verify: true
 proxy-groups:
 - name: 🚀 节点选择
   type: select
@@ -480,14 +376,6 @@ proxy-groups:
   - dongtaiwang.com_0-8
   - dongtaiwang.com_0-9
   - dongtaiwang.com_0-10
-  - dongtaiwang.com_0-11
-  - dongtaiwang.com_1-5
-  - dongtaiwang.com_2-3
-  - dongtaiwang.com_3-2
-  - dongtaiwang.com_4-2
-  - dongtaiwang.com_0-12
-  - dongtaiwang.com_0-13
-  - dongtaiwang.com_0-14
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
