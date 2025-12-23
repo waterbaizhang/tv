@@ -1,5 +1,5 @@
 proxies:
-- name: dongtaiwang.com_0
+- name: https://github.com/Alvin9999-newpac/fanqiang/wiki
   type: hysteria
   server: 5.178.101.33
   port: 23008
@@ -71,7 +71,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_0-1
+- name: https://github.com/Alvin9999-newpac/fanqiang/wiki-1
   type: vless
   server: 195.154.200.13
   port: 17401
@@ -143,7 +143,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: dongtaiwang.com_0-2
+- name: https://github.com/Alvin9999-newpac/fanqiang/wiki-2
   server: 89.144.35.231
   port: 33457
   type: tuic
@@ -169,7 +169,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_0-3
+- name: dongtaiwang.com_0
   server: 62.210.10.113
   port: 33998
   type: tuic
@@ -235,7 +235,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_0-4
+- name: dongtaiwang.com_0-1
   type: hysteria
   server: 2001:bc8:32d7:14f::4
   port: 23880
@@ -251,22 +251,22 @@ proxy-groups:
 - name: 🚀 节点选择
   type: select
   proxies: &id001
-  - dongtaiwang.com_0
+  - https://github.com/Alvin9999-newpac/fanqiang/wiki
   - dongtaiwang.com_1
   - dongtaiwang.com_2
   - dongtaiwang.com_3
   - dongtaiwang.com_4
-  - dongtaiwang.com_0-1
+  - https://github.com/Alvin9999-newpac/fanqiang/wiki-1
   - dongtaiwang.com_1-1
   - dongtaiwang.com_2-1
-  - dongtaiwang.com_0-2
+  - https://github.com/Alvin9999-newpac/fanqiang/wiki-2
   - dongtaiwang.com_1-2
-  - dongtaiwang.com_0-3
+  - dongtaiwang.com_0
   - dongtaiwang.com_1-3
   - dongtaiwang.com_2-2
   - dongtaiwang.com_3-1
   - dongtaiwang.com_4-1
-  - dongtaiwang.com_0-4
+  - dongtaiwang.com_0-1
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
