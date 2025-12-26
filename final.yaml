@@ -169,7 +169,227 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
+- name: https://github.com/Alvin9999-newpac/fanqiang/wiki-3
+  type: hysteria
+  server: 5.178.101.33
+  port: 23008
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_1-3
+  type: vless
+  server: 195.154.200.13
+  port: 17401
+  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
+  network: tcp
+  udp: true
+  tls: true
+  flow: null
+  servername: itunes.apple.com
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
+    short-id: 8ef4455ba637425b
+  smux:
+    enabled: true
+    protocol: h2mux
+    max-connections: 1
+    min-streams: 4
+    padding: true
+    brutal-opts:
+      enabled: true
+      up: 50
+      down: 100
+- name: dongtaiwang.com_2-2
+  type: hysteria
+  server: ipv4.758733.xyz
+  port: 20001
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_3-1
+  type: hysteria
+  server: 2001:bc8:32d7:402::3
+  port: 20001
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_4-1
+  type: hysteria
+  server: 2001:bc8:32d7:402::4
+  port: 20001
+  auth-str: dongtaiwang.com
+  sni: apple.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
 - name: dongtaiwang.com_0
+  type: anytls
+  server: 45.221.98.14
+  port: 59901
+  password: dongtaiwang.com
+  client-fingerprint: chrome
+  udp: true
+  idle-session-check-interval: 30
+  idle-session-timeout: 30
+  min-idle-session: 0
+  alpn:
+  - h2
+  - http/1.1
+  skip-cert-verify: true
+- name: https://github.com/Alvin9999-newpac/fanqiang/wiki-4
+  type: vless
+  server: 195.154.200.13
+  port: 17401
+  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
+  network: tcp
+  udp: true
+  tls: true
+  flow: null
+  servername: itunes.apple.com
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
+    short-id: 8ef4455ba637425b
+  smux:
+    enabled: true
+    protocol: h2mux
+    max-connections: 1
+    min-streams: 4
+    padding: true
+    brutal-opts:
+      enabled: true
+      up: 50
+      down: 100
+- name: dongtaiwang.com_1-4
+  type: vless
+  server: 2001:bc8:32d7:181::2
+  port: 17401
+  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
+  network: tcp
+  udp: true
+  tls: true
+  flow: null
+  servername: itunes.apple.com
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
+    short-id: 8ef4455ba637425b
+  smux:
+    enabled: true
+    protocol: h2mux
+    max-connections: 1
+    min-streams: 4
+    padding: true
+    brutal-opts:
+      enabled: true
+      up: 50
+      down: 100
+- name: dongtaiwang.com_2-3
+  type: vless
+  server: 2001:bc8:32d7:181::3
+  port: 17401
+  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
+  network: tcp
+  udp: true
+  tls: true
+  flow: null
+  servername: itunes.apple.com
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
+    short-id: 8ef4455ba637425b
+  smux:
+    enabled: true
+    protocol: h2mux
+    max-connections: 1
+    min-streams: 4
+    padding: true
+    brutal-opts:
+      enabled: true
+      up: 50
+      down: 100
+- name: dongtaiwang.com_0-1
+  type: vless
+  server: 2a14:7583:2977::a
+  port: 10494
+  uuid: 9328c397-1485-4bd0-a214-cae442ae828c
+  network: tcp
+  udp: true
+  tls: true
+  flow: null
+  servername: itunes.apple.com
+  client-fingerprint: chrome
+  reality-opts:
+    public-key: LdkOYdsF39LEUZ9pQgQX1ql_UjMjmn308EMs-n27cEQ
+    short-id: 7e5f09e994395f10
+  smux:
+    enabled: true
+    protocol: h2mux
+    max-connections: 1
+    min-streams: 4
+    padding: true
+    brutal-opts:
+      enabled: true
+      up: 50
+      down: 100
+- name: https://github.com/Alvin9999-newpac/fanqiang/wiki-5
+  server: 89.144.35.231
+  port: 33457
+  type: tuic
+  uuid: 66d37a65-7f6f-4e7c-a0f6-163bd917756a
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: apple.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_1-5
+  server: 2a14:7583:299d::a
+  port: 33457
+  type: tuic
+  uuid: 66d37a65-7f6f-4e7c-a0f6-163bd917756a
+  password: dongtaiwang.com
+  alpn:
+  - h3
+  sni: apple.com
+  skip-cert-verify: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+- name: dongtaiwang.com_0-2
+  type: hysteria
+  server: 2001:bc8:32d7:14f::4
+  port: 23880
+  auth-str: dongtaiwang.com
+  sni: bing.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: dongtaiwang.com_0-3
   server: 62.210.10.113
   port: 33998
   type: tuic
@@ -182,7 +402,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_1-3
+- name: dongtaiwang.com_1-6
   type: anytls
   server: fan3.394615.xyz
   port: 8443
@@ -196,7 +416,7 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: dongtaiwang.com_2-2
+- name: dongtaiwang.com_2-4
   server: 2001:bc8:32d7:306::124
   port: 33998
   type: tuic
@@ -209,7 +429,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_3-1
+- name: dongtaiwang.com_3-2
   server: 2001:bc8:32d7:306::125
   port: 33998
   type: tuic
@@ -222,7 +442,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_4-1
+- name: dongtaiwang.com_4-2
   server: 2001:bc8:32d7:306::126
   port: 33998
   type: tuic
@@ -235,7 +455,7 @@ proxies:
   reduce-rtt: true
   udp-relay-mode: native
   congestion-controller: bbr
-- name: dongtaiwang.com_0-1
+- name: dongtaiwang.com_0-4
   type: hysteria
   server: 2001:bc8:32d7:14f::4
   port: 23880
@@ -261,12 +481,25 @@ proxy-groups:
   - dongtaiwang.com_2-1
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-2
   - dongtaiwang.com_1-2
-  - dongtaiwang.com_0
+  - https://github.com/Alvin9999-newpac/fanqiang/wiki-3
   - dongtaiwang.com_1-3
   - dongtaiwang.com_2-2
   - dongtaiwang.com_3-1
   - dongtaiwang.com_4-1
+  - dongtaiwang.com_0
+  - https://github.com/Alvin9999-newpac/fanqiang/wiki-4
+  - dongtaiwang.com_1-4
+  - dongtaiwang.com_2-3
   - dongtaiwang.com_0-1
+  - https://github.com/Alvin9999-newpac/fanqiang/wiki-5
+  - dongtaiwang.com_1-5
+  - dongtaiwang.com_0-2
+  - dongtaiwang.com_0-3
+  - dongtaiwang.com_1-6
+  - dongtaiwang.com_2-4
+  - dongtaiwang.com_3-2
+  - dongtaiwang.com_4-2
+  - dongtaiwang.com_0-4
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
@@ -296,5 +529,38 @@ proxy-groups:
 - name: 🐟 漏网之鱼
   type: select
   proxies: *id001
+- name: ğŸš€ èŠ‚ç‚¹é€‰æ‹©
+  type: select
+  proxies: *id001
+- name: â™»ï¸� è‡ªåŠ¨é€‰æ‹©
+  type: fallback
+  url: https://www.gstatic.com/generate_204
+  interval: 5
+  proxies: *id001
+- name: ğŸŒ� å›½å¤–åª’ä½“
+  type: select
+  proxies: *id001
+- name: ğŸ“² ç”µæŠ¥ä¿¡æ�¯
+  type: select
+  proxies: *id001
+- name: â“‚ï¸� å¾®è½¯æœ�åŠ¡
+  type: select
+  proxies: *id001
+- name: ğŸ�� è‹¹æ�œæœ�åŠ¡
+  type: select
+  proxies: *id001
+- name: ğŸ�¯ å…¨ç�ƒç›´è¿�
+  type: select
+  proxies: *id001
+- name: ğŸ›‘ å…¨ç�ƒæ‹¦æˆª
+  type: select
+  proxies: *id001
+- name: ğŸ�ƒ åº”ç”¨å‡€åŒ–
+  type: select
+  proxies: *id001
+- name: ğŸ�Ÿ æ¼�ç½‘ä¹‹é±¼
+  type: select
+  proxies: *id001
 rules:
 - MATCH,🚀 节点选择
+- MATCH,ğŸš€ èŠ‚ç‚¹é€‰æ‹©
