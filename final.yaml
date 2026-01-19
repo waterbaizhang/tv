@@ -373,15 +373,15 @@ proxies:
   up: 11 Mbps
   down: 55 Mbps
 - name: https://github.com/Alvin9999-newpac/fanqiang/wiki-7
-  type: hysteria
-  server: 89.144.35.30
-  port: 23008
-  auth-str: dongtaiwang.com
-  sni: apple.com
-  skip-cert-verify: true
+  type: hysteria2
+  server: 157.254.223.24
+  port: 30088
+  ports: 31000-32000
+  password: alvin9999.com
   alpn:
   - h3
-  protocol: udp
+  sni: apple.com
+  skip-cert-verify: true
   up: 11 Mbps
   down: 55 Mbps
 - name: dongtaiwang.com_1-6
@@ -483,15 +483,15 @@ proxies:
   - http/1.1
   skip-cert-verify: true
 - name: https://github.com/Alvin9999-newpac/fanqiang/wiki-8
-  type: hysteria
-  server: 89.144.35.30
-  port: 23008
-  auth-str: dongtaiwang.com
-  sni: apple.com
-  skip-cert-verify: true
+  type: hysteria2
+  server: 157.254.223.24
+  port: 30088
+  ports: 31000-32000
+  password: alvin9999.com
   alpn:
   - h3
-  protocol: udp
+  sni: apple.com
+  skip-cert-verify: true
   up: 11 Mbps
   down: 55 Mbps
 - name: dongtaiwang.com_1-7
