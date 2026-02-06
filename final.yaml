@@ -144,31 +144,17 @@ proxies:
       up: 50
       down: 100
 - name: https://github.com/Alvin9999-newpac/fanqiang/wiki-1
-  server: 89.144.35.231
-  port: 33457
-  type: tuic
-  uuid: 66d37a65-7f6f-4e7c-a0f6-163bd917756a
-  password: dongtaiwang.com
-  alpn:
-  - h3
+  type: hysteria
+  server: 2a14:7584:d097::a
+  port: 54177
+  auth-str: dongtaiwang.com
   sni: apple.com
   skip-cert-verify: true
-  reduce-rtt: true
-  udp-relay-mode: native
-  congestion-controller: bbr
-- name: dongtaiwang.com_1-1
-  server: 2a14:7583:299d::a
-  port: 33457
-  type: tuic
-  uuid: 66d37a65-7f6f-4e7c-a0f6-163bd917756a
-  password: dongtaiwang.com
   alpn:
   - h3
-  sni: apple.com
-  skip-cert-verify: true
-  reduce-rtt: true
-  udp-relay-mode: native
-  congestion-controller: bbr
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
 - name: alvin9999.com-1
   type: hysteria
   server: ip1.758733.xyz
@@ -279,7 +265,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: dongtaiwang.com_1-2
+- name: dongtaiwang.com_1-1
   type: vless
   server: 2001:bc8:32d7:181::2
   port: 17401
@@ -335,31 +321,17 @@ proxies:
   username: dongtaiwang.com
   password: dongtaiwang.com
 - name: https://github.com/Alvin9999-newpac/fanqiang/wiki-3
-  server: 89.144.35.231
-  port: 33457
-  type: tuic
-  uuid: 66d37a65-7f6f-4e7c-a0f6-163bd917756a
-  password: dongtaiwang.com
-  alpn:
-  - h3
+  type: hysteria
+  server: 2a14:7584:d097::a
+  port: 54177
+  auth-str: dongtaiwang.com
   sni: apple.com
   skip-cert-verify: true
-  reduce-rtt: true
-  udp-relay-mode: native
-  congestion-controller: bbr
-- name: dongtaiwang.com_1-3
-  server: 2a14:7583:299d::a
-  port: 33457
-  type: tuic
-  uuid: 66d37a65-7f6f-4e7c-a0f6-163bd917756a
-  password: dongtaiwang.com
   alpn:
   - h3
-  sni: apple.com
-  skip-cert-verify: true
-  reduce-rtt: true
-  udp-relay-mode: native
-  congestion-controller: bbr
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
 - name: https://github.com/Alvin9999-newpac/fanqiang/wiki-4
   type: hysteria
   server: 2a14:7584:d097::a
@@ -384,7 +356,7 @@ proxies:
   skip-cert-verify: true
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_1-4
+- name: dongtaiwang.com_1-2
   type: hysteria
   server: 5.178.101.33
   port: 23008
@@ -494,7 +466,7 @@ proxies:
   skip-cert-verify: true
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_1-5
+- name: dongtaiwang.com_1-3
   type: hysteria
   server: 5.178.101.33
   port: 23008
@@ -579,7 +551,6 @@ proxy-groups:
   - dongtaiwang.com_1
   - dongtaiwang.com_2
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-1
-  - dongtaiwang.com_1-1
   - alvin9999.com-1
   - alvin9999.com_1-1
   - alvin9999.com_2-1
@@ -587,14 +558,13 @@ proxy-groups:
   - alvin9999.com_4-1
   - dongtaiwang.com_0
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-2
-  - dongtaiwang.com_1-2
+  - dongtaiwang.com_1-1
   - dongtaiwang.com_2-1
   - dongtaiwang.com_0-1
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-3
-  - dongtaiwang.com_1-3
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-4
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-5
-  - dongtaiwang.com_1-4
+  - dongtaiwang.com_1-2
   - dongtaiwang.com_2-2
   - dongtaiwang.com_3
   - dongtaiwang.com_4
@@ -602,7 +572,7 @@ proxy-groups:
   - dongtaiwang.com_0-3
   - dongtaiwang.com_0-4
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-6
-  - dongtaiwang.com_1-5
+  - dongtaiwang.com_1-3
   - dongtaiwang.com_2-3
   - dongtaiwang.com_3-1
   - dongtaiwang.com_4-1
