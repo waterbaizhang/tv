@@ -344,19 +344,19 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: https://github.com/Alvin9999-newpac/fanqiang/wiki-5
-  type: hysteria2
-  server: 157.254.223.24
-  port: 30088
-  ports: 31000-32000
-  password: alvin9999.com
-  alpn:
-  - h3
+- name: alvin9999.com-2
+  type: hysteria
+  server: ip1.758733.xyz
+  port: 23008
+  auth-str: alvin9999.com
   sni: apple.com
   skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_1-2
+- name: alvin9999.com_1-2
   type: hysteria
   server: 5.178.101.33
   port: 23008
@@ -368,7 +368,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_2-2
+- name: alvin9999.com_2-2
   type: vless
   server: 195.154.200.13
   port: 17401
@@ -392,7 +392,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: dongtaiwang.com_3
+- name: alvin9999.com_3-2
   type: hysteria
   server: 2001:bc8:32d7:402::3
   port: 20001
@@ -404,7 +404,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_4
+- name: alvin9999.com_4-2
   type: hysteria
   server: 2001:bc8:32d7:402::4
   port: 20001
@@ -454,19 +454,19 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: https://github.com/Alvin9999-newpac/fanqiang/wiki-6
-  type: hysteria2
-  server: 157.254.223.24
-  port: 30088
-  ports: 31000-32000
-  password: alvin9999.com
-  alpn:
-  - h3
+- name: alvin9999.com-3
+  type: hysteria
+  server: ip1.758733.xyz
+  port: 23008
+  auth-str: alvin9999.com
   sni: apple.com
   skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_1-3
+- name: alvin9999.com_1-3
   type: hysteria
   server: 5.178.101.33
   port: 23008
@@ -478,7 +478,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_2-3
+- name: alvin9999.com_2-3
   type: vless
   server: 195.154.200.13
   port: 17401
@@ -502,7 +502,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: dongtaiwang.com_3-1
+- name: alvin9999.com_3-3
   type: hysteria
   server: 2001:bc8:32d7:402::3
   port: 20001
@@ -514,7 +514,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_4-1
+- name: alvin9999.com_4-3
   type: hysteria
   server: 2001:bc8:32d7:402::4
   port: 20001
@@ -563,19 +563,19 @@ proxy-groups:
   - dongtaiwang.com_0-1
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-3
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-4
-  - https://github.com/Alvin9999-newpac/fanqiang/wiki-5
-  - dongtaiwang.com_1-2
-  - dongtaiwang.com_2-2
-  - dongtaiwang.com_3
-  - dongtaiwang.com_4
+  - alvin9999.com-2
+  - alvin9999.com_1-2
+  - alvin9999.com_2-2
+  - alvin9999.com_3-2
+  - alvin9999.com_4-2
   - dongtaiwang.com_0-2
   - dongtaiwang.com_0-3
   - dongtaiwang.com_0-4
-  - https://github.com/Alvin9999-newpac/fanqiang/wiki-6
-  - dongtaiwang.com_1-3
-  - dongtaiwang.com_2-3
-  - dongtaiwang.com_3-1
-  - dongtaiwang.com_4-1
+  - alvin9999.com-3
+  - alvin9999.com_1-3
+  - alvin9999.com_2-3
+  - alvin9999.com_3-3
+  - alvin9999.com_4-3
   - dongtaiwang.com_0-5
 - name: ♻️ 自动选择
   type: fallback
