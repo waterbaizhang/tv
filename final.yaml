@@ -504,6 +504,20 @@ proxies:
   up: 11 Mbps
   down: 55 Mbps
 - name: dongtaiwang.com_0-3
+  type: anytls
+  server: 151.242.183.75
+  port: 33333
+  password: dongtaiwang.com
+  client-fingerprint: chrome
+  udp: true
+  idle-session-check-interval: 30
+  idle-session-timeout: 30
+  min-idle-session: 0
+  alpn:
+  - h2
+  - http/1.1
+  skip-cert-verify: true
+- name: dongtaiwang.com_1-2
   type: hysteria
   server: 2a14:7584:d097::a
   port: 54177
@@ -638,6 +652,20 @@ proxies:
       up: 50
       down: 100
 - name: dongtaiwang.com_0-5
+  type: anytls
+  server: 151.242.183.75
+  port: 33333
+  password: dongtaiwang.com
+  client-fingerprint: chrome
+  udp: true
+  idle-session-check-interval: 30
+  idle-session-timeout: 30
+  min-idle-session: 0
+  alpn:
+  - h2
+  - http/1.1
+  skip-cert-verify: true
+- name: dongtaiwang.com_1-3
   type: hysteria
   server: 2a14:7584:d097::a
   port: 54177
@@ -681,6 +709,7 @@ proxy-groups:
   - alvin9999.com_4-2
   - dongtaiwang.com_0-2
   - dongtaiwang.com_0-3
+  - dongtaiwang.com_1-2
   - dongtaiwang.com_0-4
   - alvin9999.com-3
   - alvin9999.com_1-3
@@ -688,6 +717,7 @@ proxy-groups:
   - alvin9999.com_3-3
   - alvin9999.com_4-3
   - dongtaiwang.com_0-5
+  - dongtaiwang.com_1-3
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
