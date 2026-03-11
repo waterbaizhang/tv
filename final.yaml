@@ -364,12 +364,18 @@ proxies:
       up: 50
       down: 100
 - name: dongtaiwang.com_0-1
-  type: mieru
   server: 157.254.223.48
-  port: 33990
-  transport: TCP
-  username: dongtaiwang.com
-  password: dongtaiwang.com
+  port: 11540
+  type: tuic
+  uuid: 6845cb43-4b8d-49e8-a011-1051d6c4d2ae
+  password: 6845cb43-4b8d-49e8-a011-1051d6c4d2ae
+  sni: www.microsoft.com
+  alpn:
+  - h3
+  request-timeout: 8000
+  udp-relay-mode: native
+  skip-cert-verify: true
+  congestion-controller: bbr
 - name: https://github.com/Alvin9999-newpac/fanqiang/wiki-3
   type: hysteria
   server: 2a14:7584:d097::a
@@ -394,116 +400,33 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: alvin9999.com-2
-  server: ip1.758733.xyz
-  port: 10088
+- name: dongtaiwang.com_0-2
+  server: 5.178.101.117
+  port: 30006
   type: tuic
-  uuid: 9bbd1f42-7ae7-4239-bd10-a68de95e3295
+  uuid: 36106e0f-4d9a-470b-a3fd-535f3b7a1e92
   password: dongtaiwang.com
-  sni: apple.com
+  sni: www.microsoft.com
   alpn:
   - h3
   request-timeout: 8000
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: alvin9999.com_1-2
-  type: hysteria
-  server: ip1.758733.xyz
-  port: 23008
-  auth-str: alvin9999.com
-  sni: apple.com
-  skip-cert-verify: true
-  alpn:
-  - h3
-  protocol: udp
-  up: 11 Mbps
-  down: 55 Mbps
-- name: alvin9999.com_2-2
-  type: vless
-  server: 2001:bc8:32d7:181::3
-  port: 17401
-  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
-  network: tcp
-  udp: true
-  tls: true
-  flow: null
-  servername: itunes.apple.com
-  client-fingerprint: chrome
-  reality-opts:
-    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
-    short-id: 8ef4455ba637425b
-  smux:
-    enabled: true
-    protocol: h2mux
-    max-connections: 1
-    min-streams: 4
-    padding: true
-    brutal-opts:
-      enabled: true
-      up: 50
-      down: 100
-- name: alvin9999.com_3-2
-  type: vless
-  server: 2001:bc8:32d7:181::4
-  port: 17401
-  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
-  network: tcp
-  udp: true
-  tls: true
-  flow: null
-  servername: itunes.apple.com
-  client-fingerprint: chrome
-  reality-opts:
-    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
-    short-id: 8ef4455ba637425b
-  smux:
-    enabled: true
-    protocol: h2mux
-    max-connections: 1
-    min-streams: 4
-    padding: true
-    brutal-opts:
-      enabled: true
-      up: 50
-      down: 100
-- name: alvin9999.com_4-2
-  type: vless
-  server: 2001:bc8:32d7:181::5
-  port: 17401
-  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
-  network: tcp
-  udp: true
-  tls: true
-  flow: null
-  servername: itunes.apple.com
-  client-fingerprint: chrome
-  reality-opts:
-    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
-    short-id: 8ef4455ba637425b
-  smux:
-    enabled: true
-    protocol: h2mux
-    max-connections: 1
-    min-streams: 4
-    padding: true
-    brutal-opts:
-      enabled: true
-      up: 50
-      down: 100
-- name: dongtaiwang.com_0-2
-  type: hysteria
-  server: 208.87.243.151
-  port: 10023
-  auth-str: dongtaiwang.com
-  sni: apple.com
-  skip-cert-verify: true
-  alpn:
-  - h3
-  protocol: udp
-  up: 11 Mbps
-  down: 55 Mbps
 - name: dongtaiwang.com_0-3
+  server: 157.254.223.48
+  port: 11540
+  type: tuic
+  uuid: 6845cb43-4b8d-49e8-a011-1051d6c4d2ae
+  password: 6845cb43-4b8d-49e8-a011-1051d6c4d2ae
+  sni: www.microsoft.com
+  alpn:
+  - h3
+  request-timeout: 8000
+  udp-relay-mode: native
+  skip-cert-verify: true
+  congestion-controller: bbr
+- name: dongtaiwang.com_0-4
   type: anytls
   server: 151.242.183.75
   port: 33333
@@ -529,7 +452,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_0-4
+- name: dongtaiwang.com_0-5
   type: anytls
   server: fan2.856098.xyz
   port: 8443
@@ -543,115 +466,20 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: alvin9999.com-3
-  type: hysteria
-  server: ip1.758733.xyz
-  port: 23008
-  auth-str: alvin9999.com
-  sni: apple.com
-  skip-cert-verify: true
+- name: dongtaiwang.com_0-6
+  server: 5.178.101.117
+  port: 30006
+  type: tuic
+  uuid: 36106e0f-4d9a-470b-a3fd-535f3b7a1e92
+  password: dongtaiwang.com
+  sni: www.microsoft.com
   alpn:
   - h3
-  protocol: udp
-  up: 11 Mbps
-  down: 55 Mbps
-- name: alvin9999.com_1-3
-  type: vless
-  server: 2001:bc8:32d7:181::2
-  port: 17401
-  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
-  network: tcp
-  udp: true
-  tls: true
-  flow: null
-  servername: itunes.apple.com
-  client-fingerprint: chrome
-  reality-opts:
-    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
-    short-id: 8ef4455ba637425b
-  smux:
-    enabled: true
-    protocol: h2mux
-    max-connections: 1
-    min-streams: 4
-    padding: true
-    brutal-opts:
-      enabled: true
-      up: 50
-      down: 100
-- name: alvin9999.com_2-3
-  type: vless
-  server: 2001:bc8:32d7:181::3
-  port: 17401
-  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
-  network: tcp
-  udp: true
-  tls: true
-  flow: null
-  servername: itunes.apple.com
-  client-fingerprint: chrome
-  reality-opts:
-    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
-    short-id: 8ef4455ba637425b
-  smux:
-    enabled: true
-    protocol: h2mux
-    max-connections: 1
-    min-streams: 4
-    padding: true
-    brutal-opts:
-      enabled: true
-      up: 50
-      down: 100
-- name: alvin9999.com_3-3
-  type: vless
-  server: 2001:bc8:32d7:181::4
-  port: 17401
-  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
-  network: tcp
-  udp: true
-  tls: true
-  flow: null
-  servername: itunes.apple.com
-  client-fingerprint: chrome
-  reality-opts:
-    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
-    short-id: 8ef4455ba637425b
-  smux:
-    enabled: true
-    protocol: h2mux
-    max-connections: 1
-    min-streams: 4
-    padding: true
-    brutal-opts:
-      enabled: true
-      up: 50
-      down: 100
-- name: alvin9999.com_4-3
-  type: vless
-  server: 2001:bc8:32d7:181::5
-  port: 17401
-  uuid: add14a5b-f648-4423-8a1f-8b8f54c0daef
-  network: tcp
-  udp: true
-  tls: true
-  flow: null
-  servername: itunes.apple.com
-  client-fingerprint: chrome
-  reality-opts:
-    public-key: IXcXrT_Y0ATTZlGOhPnSmKo-cuGr4yMKV9Rz4-nA3yU
-    short-id: 8ef4455ba637425b
-  smux:
-    enabled: true
-    protocol: h2mux
-    max-connections: 1
-    min-streams: 4
-    padding: true
-    brutal-opts:
-      enabled: true
-      up: 50
-      down: 100
-- name: dongtaiwang.com_0-5
+  request-timeout: 8000
+  udp-relay-mode: native
+  skip-cert-verify: true
+  congestion-controller: bbr
+- name: dongtaiwang.com_0-7
   type: anytls
   server: 151.242.183.75
   port: 33333
@@ -702,21 +530,13 @@ proxy-groups:
   - dongtaiwang.com_0-1
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-3
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-4
-  - alvin9999.com-2
-  - alvin9999.com_1-2
-  - alvin9999.com_2-2
-  - alvin9999.com_3-2
-  - alvin9999.com_4-2
   - dongtaiwang.com_0-2
   - dongtaiwang.com_0-3
-  - dongtaiwang.com_1-2
   - dongtaiwang.com_0-4
-  - alvin9999.com-3
-  - alvin9999.com_1-3
-  - alvin9999.com_2-3
-  - alvin9999.com_3-3
-  - alvin9999.com_4-3
+  - dongtaiwang.com_1-2
   - dongtaiwang.com_0-5
+  - dongtaiwang.com_0-6
+  - dongtaiwang.com_0-7
   - dongtaiwang.com_1-3
 - name: ♻️ 自动选择
   type: fallback
