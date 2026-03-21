@@ -401,6 +401,13 @@ proxies:
   up: 11 Mbps
   down: 55 Mbps
 - name: dongtaiwang.com_0-2
+  type: mieru
+  server: 151.242.183.103
+  port: 23014
+  transport: TCP
+  username: tcp_3flnfpno
+  password: A4Hv3H5yb8meP1MN
+- name: dongtaiwang.com_1-2
   server: 5.178.101.117
   port: 30006
   type: tuic
@@ -440,7 +447,7 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: dongtaiwang.com_1-2
+- name: dongtaiwang.com_1-3
   type: hysteria
   server: 2a14:7584:d097::a
   port: 54177
@@ -467,6 +474,13 @@ proxies:
   - http/1.1
   skip-cert-verify: true
 - name: dongtaiwang.com_0-6
+  type: mieru
+  server: 151.242.183.103
+  port: 23014
+  transport: TCP
+  username: tcp_3flnfpno
+  password: A4Hv3H5yb8meP1MN
+- name: dongtaiwang.com_1-4
   server: 5.178.101.117
   port: 30006
   type: tuic
@@ -493,7 +507,7 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: dongtaiwang.com_1-3
+- name: dongtaiwang.com_1-5
   type: hysteria
   server: 2a14:7584:d097::a
   port: 54177
@@ -531,13 +545,15 @@ proxy-groups:
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-3
   - https://github.com/Alvin9999-newpac/fanqiang/wiki-4
   - dongtaiwang.com_0-2
+  - dongtaiwang.com_1-2
   - dongtaiwang.com_0-3
   - dongtaiwang.com_0-4
-  - dongtaiwang.com_1-2
+  - dongtaiwang.com_1-3
   - dongtaiwang.com_0-5
   - dongtaiwang.com_0-6
+  - dongtaiwang.com_1-4
   - dongtaiwang.com_0-7
-  - dongtaiwang.com_1-3
+  - dongtaiwang.com_1-5
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
