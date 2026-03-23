@@ -22,22 +22,18 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests pyyaml geoip2 dnspython
+          pip install requests pyyaml
 
       - name: Merge nodes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python << 'EOF'
-          import os, sys, gzip, shutil, socket, requests, yaml, geoip2.database
+          import os, sys, socket, requests, yaml, time
           from collections import OrderedDict
 
           # ---------- 配置 ----------
-          GEOIP_URL = "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb.gz"
-          GEOIP_GZ = "GeoLite2-Country.mmdb.gz"
-          GEOIP_DB = "GeoLite2-Country.mmdb"
-
-          # 国家代码映射（仅保留常用，可自行扩展）
+          # 国家代码到中文名的映射（可自行补充）
           COUNTRY_NAMES = {
               'CN': '中国', 'US': '美国', 'JP': '日本', 'KR': '韩国', 'HK': '香港', 'TW': '台湾',
               'SG': '新加坡', 'GB': '英国', 'DE': '德国', 'FR': '法国', 'CA': '加拿大', 'AU': '澳大利亚',
@@ -46,43 +42,35 @@ jobs:
               'BE': '比利时', 'AT': '奥地利', 'PL': '波兰', 'CZ': '捷克', 'HU': '匈牙利', 'TR': '土耳其',
               'TH': '泰国', 'VN': '越南', 'MY': '马来西亚', 'ID': '印度尼西亚', 'PH': '菲律宾', 'AE': '阿联酋',
               'SA': '沙特阿拉伯', 'IL': '以色列', 'EG': '埃及', 'NG': '尼日利亚', 'MX': '墨西哥',
-              # 其他请根据需要补充
+              # 可根据需要添加更多
           }
 
-          # ---------- 下载 GeoIP ----------
-          if not os.path.exists(GEOIP_DB):
-              print("下载 GeoIP 数据库...")
-              try:
-                  r = requests.get(GEOIP_URL, timeout=30, stream=True)
-                  r.raise_for_status()
-                  with open(GEOIP_GZ, 'wb') as f:
-                      for chunk in r.iter_content(chunk_size=8192):
-                          f.write(chunk)
-                  with gzip.open(GEOIP_GZ, 'rb') as f_in, open(GEOIP_DB, 'wb') as f_out:
-                      shutil.copyfileobj(f_in, f_out)
-                  os.remove(GEOIP_GZ)
-                  print("GeoIP 数据库下载并解压完成")
-              except Exception as e:
-                  print(f"GeoIP 下载失败: {e}")
-                  sys.exit(1)
-
-          reader = geoip2.database.Reader(GEOIP_DB)
-
+          # 在线查询函数，使用 ip-api.com（免费，无需 API 密钥）
           def get_country_name(server):
+              """根据 server（IP 或域名）返回国家中文名，失败返回 None"""
               try:
-                  # 判断是否为 IP
+                  # 将域名解析为 IP
                   ip = server
                   try:
                       socket.inet_aton(server)
                   except socket.error:
-                      # 解析域名
                       ip = socket.gethostbyname(server)
-                  response = reader.country(ip)
-                  code = response.country.iso_code
-                  return COUNTRY_NAMES.get(code, code)  # 未映射则返回代码
+                  
+                  # 调用 ip-api.com，仅获取国家代码
+                  url = f"http://ip-api.com/json/{ip}?fields=countryCode"
+                  resp = requests.get(url, timeout=10)
+                  if resp.status_code == 200:
+                      data = resp.json()
+                      if data.get('status') == 'success':
+                          code = data.get('countryCode')
+                          if code in COUNTRY_NAMES:
+                              return COUNTRY_NAMES[code]
+                          else:
+                              # 若映射表中没有，返回国家代码本身
+                              return code
               except Exception as e:
                   print(f"  国家查询失败 ({server}): {e}")
-                  return None
+              return None
 
           # ---------- 读取 urls.txt ----------
           urls_file = "urls.txt"
@@ -99,6 +87,7 @@ jobs:
           final_config = None
           first_config_loaded = False
 
+          # 遍历每个 URL
           for url in urls:
               print(f"处理: {url}")
               try:
@@ -109,6 +98,7 @@ jobs:
                       print("  空内容，跳过")
                       continue
 
+                  # 记录第一个有效配置的顶层结构（除 proxies 和 proxy-groups 外的其他部分）
                   if not first_config_loaded:
                       final_config = data
                       final_config['proxies'] = []
@@ -123,16 +113,19 @@ jobs:
                               merged_proxies.append(proxy.copy())
                               continue
 
+                          # 去重：基于 server 地址（忽略大小写）
                           server_key = server.strip().lower()
                           if server_key in seen_servers:
                               print(f"  跳过重复 server: {server}")
                               continue
                           seen_servers.add(server_key)
 
+                          # 获取国家中文名
                           country = get_country_name(server)
                           if country is None:
                               new_name = proxy.get('name', 'Unknown')
                           else:
+                              # 同一国家名加数字后缀
                               if country not in country_counter:
                                   country_counter[country] = 0
                               country_counter[country] += 1
@@ -145,13 +138,13 @@ jobs:
                       print("  无 proxies 字段或格式错误")
               except Exception as e:
                   print(f"  处理失败: {e}")
-                  continue
+                  continue  # 跳过该 URL，继续下一个
 
           if not merged_proxies:
               print("未获取到任何有效节点，退出")
               sys.exit(1)
 
-          # 生成 proxy-group
+          # 生成统一的 proxy-groups
           proxy_names = [p['name'] for p in merged_proxies if 'name' in p]
           default_group = {
               'name': 'Proxy',
@@ -169,28 +162,24 @@ jobs:
                   'rules': []
               }
 
+          # 写入 final.yaml
           with open('final.yaml', 'w', encoding='utf-8') as f:
               yaml.dump(final_config, f, allow_unicode=True, sort_keys=False)
 
           print(f"生成 final.yaml，共 {len(merged_proxies)} 个节点")
-          reader.close()
           EOF
 
       - name: Commit and push
         run: |
-          # 确保 final.yaml 存在
           if [ ! -f final.yaml ]; then
             echo "final.yaml 不存在，退出"
             exit 1
           fi
-          # 显示文件前几行以便调试
           head -n 10 final.yaml
-          # 设置远程 URL 使用 token
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add final.yaml
-          # 检查是否有变更
           if git diff --staged --quiet; then
             echo "final.yaml 内容未变，无需提交"
           else
