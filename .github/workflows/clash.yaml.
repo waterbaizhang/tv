@@ -2,27 +2,141 @@ name: Merge Clash Nodes
 
 on:
   schedule:
-    - cron: '0 23 * * *'  # 每天北京时间早上7点（UTC时间的23点）
-  workflow_dispatch:  # 支持手动执行
+    - cron: '0 23 * * *'  # 每天北京时间早7点（UTC时间23点）执行
+  workflow_dispatch:  # 支持手动触发
 
 jobs:
-  merge_clash_nodes:
+  merge-nodes:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyyaml requests geoip2
+      - name: Install required Python packages
+        run: |
+          pip install pyyaml requests geoip2
 
-    - name: Run merge and update YAML
-      run: |
-        python scripts/merge_clash_nodes.py
+      - name: Merge Clash Nodes and Generate final.yaml
+        run: |
+          # 下载GeoIP数据库，如果没有的话
+          GEOIP_DB_PATH="GeoLite2-Country.mmdb"
+          if [ ! -f "$GEOIP_DB_PATH" ]; then
+            echo "Downloading GeoIP database..."
+            GEOIP_URL="https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb.gz"
+            curl -L -o GeoLite2-Country.mmdb.gz "$GEOIP_URL"
+            gunzip -c GeoLite2-Country.mmdb.gz > "$GEOIP_DB_PATH"
+          fi
+
+          # 读取urls.txt中的URLs
+          URLS_FILE="urls.txt"
+          if [ ! -f "$URLS_FILE" ]; then
+            echo "urls.txt file not found!"
+            exit 1
+          fi
+
+          # Python脚本
+          python3 <<'EOF'
+import os
+import yaml
+import requests
+import geoip2.database
+from urllib.request import urlopen
+from io import BytesIO
+import gzip
+
+# 设置GeoIP数据库路径
+GEOIP_DB_PATH = "GeoLite2-Country.mmdb"
+
+# 解析IP地址为国家名称
+def get_country_from_ip(ip_address):
+    with geoip2.database.Reader(GEOIP_DB_PATH) as reader:
+        try:
+            response = reader.country(ip_address)
+            country_name = response.country.name
+            return country_name
+        except geoip2.errors.AddressNotFoundError:
+            return None
+
+# 读取urls.txt中的URLs
+def read_urls_from_file(file_path):
+    with open(file_path, 'r') as file:
+        return [line.strip() for line in file.readlines() if line.strip()]
+
+# 下载并读取YAML文件
+def download_yaml(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return yaml.safe_load(response.text)
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading {url}: {e}")
+        return None
+
+# 合并Clash配置
+def merge_clash_configs(urls):
+    proxies = []
+    proxy_groups = []
+
+    for url in urls:
+        data = download_yaml(url)
+        if data is None:
+            continue
+
+        for proxy in data.get('proxies', []):
+            server = proxy.get('server')
+            if any(p.get('server') == server for p in proxies):
+                continue  # 如果server地址重复，跳过该proxy
+
+            # 解析IP地址并修改name字段
+            country_name = get_country_from_ip(server)
+            if country_name:
+                # 如果同一国家，添加序号
+                country_name_count = sum(1 for p in proxies if p['name'].startswith(country_name))
+                if country_name_count > 0:
+                    country_name += str(country_name_count + 1)
+            else:
+                country_name = "Unknown"
+
+            proxy['name'] = country_name
+            proxies.append(proxy)
+
+        # 合并proxy-groups
+        if 'proxy-groups' in data:
+            proxy_groups = data['proxy-groups']
+
+    # 创建合并后的YAML
+    final_config = {
+        'proxies': proxies,
+        'proxy-groups': proxy_groups
+    }
+
+    return final_config
+
+# 将最终配置写入文件
+def write_final_config(config, output_path):
+    with open(output_path, 'w', encoding='utf-8') as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+
+def main():
+    urls = read_urls_from_file('urls.txt')
+    merged_config = merge_clash_configs(urls)
+    write_final_config(merged_config, 'final.yaml')
+    print("final.yaml has been updated.")
+
+if __name__ == "__main__":
+    main()
+EOF
+
+      - name: Commit and push final.yaml
+        run: |
+          git config --global user.email "your-email@example.com"
+          git config --global user.name "GitHub Actions"
+          git add final.yaml
+          git commit -m "Update merged clash nodes configuration"
+          git push
