@@ -1,0 +1,288 @@
+name: Merge Clash Nodes
+
+on:
+  schedule:
+    # 每天北京时间 7:00 (UTC 23:00)
+    - cron: '0 23 * * *'
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 允许推送代码
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pyyaml geoip2 dnspython
+
+      - name: Run merge script
+        env:
+          # 可选：如果需要代理下载 GeoIP 数据库，可以设置，但通常不需要
+          # HTTP_PROXY: http://proxy.example.com:8080
+          # HTTPS_PROXY: http://proxy.example.com:8080
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python << 'EOF'
+          import os
+          import sys
+          import gzip
+          import shutil
+          import socket
+          import requests
+          import yaml
+          import geoip2.database
+          from urllib.parse import urlparse
+          from collections import OrderedDict
+
+          # 国家代码到中文名的映射（可自行扩展）
+          COUNTRY_NAMES = {
+              'AD': '安道尔', 'AE': '阿联酋', 'AF': '阿富汗', 'AG': '安提瓜和巴布达', 'AI': '安圭拉',
+              'AL': '阿尔巴尼亚', 'AM': '亚美尼亚', 'AO': '安哥拉', 'AQ': '南极洲', 'AR': '阿根廷',
+              'AS': '美属萨摩亚', 'AT': '奥地利', 'AU': '澳大利亚', 'AW': '阿鲁巴', 'AX': '奥兰群岛',
+              'AZ': '阿塞拜疆', 'BA': '波黑', 'BB': '巴巴多斯', 'BD': '孟加拉国', 'BE': '比利时',
+              'BF': '布基纳法索', 'BG': '保加利亚', 'BH': '巴林', 'BI': '布隆迪', 'BJ': '贝宁',
+              'BL': '圣巴泰勒米', 'BM': '百慕大', 'BN': '文莱', 'BO': '玻利维亚', 'BQ': '荷兰加勒比区',
+              'BR': '巴西', 'BS': '巴哈马', 'BT': '不丹', 'BV': '布韦岛', 'BW': '博茨瓦纳',
+              'BY': '白俄罗斯', 'BZ': '伯利兹', 'CA': '加拿大', 'CC': '科科斯群岛', 'CD': '刚果（金）',
+              'CF': '中非', 'CG': '刚果（布）', 'CH': '瑞士', 'CI': '科特迪瓦', 'CK': '库克群岛',
+              'CL': '智利', 'CM': '喀麦隆', 'CN': '中国', 'CO': '哥伦比亚', 'CR': '哥斯达黎加',
+              'CU': '古巴', 'CV': '佛得角', 'CW': '库拉索', 'CX': '圣诞岛', 'CY': '塞浦路斯',
+              'CZ': '捷克', 'DE': '德国', 'DJ': '吉布提', 'DK': '丹麦', 'DM': '多米尼克',
+              'DO': '多米尼加', 'DZ': '阿尔及利亚', 'EC': '厄瓜多尔', 'EE': '爱沙尼亚', 'EG': '埃及',
+              'EH': '西撒哈拉', 'ER': '厄立特里亚', 'ES': '西班牙', 'ET': '埃塞俄比亚', 'FI': '芬兰',
+              'FJ': '斐济', 'FK': '福克兰群岛', 'FM': '密克罗尼西亚', 'FO': '法罗群岛', 'FR': '法国',
+              'GA': '加蓬', 'GB': '英国', 'GD': '格林纳达', 'GE': '格鲁吉亚', 'GF': '法属圭亚那',
+              'GG': '根西岛', 'GH': '加纳', 'GI': '直布罗陀', 'GL': '格陵兰', 'GM': '冈比亚',
+              'GN': '几内亚', 'GP': '瓜德罗普', 'GQ': '赤道几内亚', 'GR': '希腊', 'GS': '南乔治亚和南桑威奇群岛',
+              'GT': '危地马拉', 'GU': '关岛', 'GW': '几内亚比绍', 'GY': '圭亚那', 'HK': '香港',
+              'HM': '赫德岛和麦克唐纳群岛', 'HN': '洪都拉斯', 'HR': '克罗地亚', 'HT': '海地', 'HU': '匈牙利',
+              'ID': '印尼', 'IE': '爱尔兰', 'IL': '以色列', 'IM': '马恩岛', 'IN': '印度',
+              'IO': '英属印度洋领地', 'IQ': '伊拉克', 'IR': '伊朗', 'IS': '冰岛', 'IT': '意大利',
+              'JE': '泽西岛', 'JM': '牙买加', 'JO': '约旦', 'JP': '日本', 'KE': '肯尼亚',
+              'KG': '吉尔吉斯斯坦', 'KH': '柬埔寨', 'KI': '基里巴斯', 'KM': '科摩罗', 'KN': '圣基茨和尼维斯',
+              'KP': '朝鲜', 'KR': '韩国', 'KW': '科威特', 'KY': '开曼群岛', 'KZ': '哈萨克斯坦',
+              'LA': '老挝', 'LB': '黎巴嫩', 'LC': '圣卢西亚', 'LI': '列支敦士登', 'LK': '斯里兰卡',
+              'LR': '利比里亚', 'LS': '莱索托', 'LT': '立陶宛', 'LU': '卢森堡', 'LV': '拉脱维亚',
+              'LY': '利比亚', 'MA': '摩洛哥', 'MC': '摩纳哥', 'MD': '摩尔多瓦', 'ME': '黑山',
+              'MF': '法属圣马丁', 'MG': '马达加斯加', 'MH': '马绍尔群岛', 'MK': '北马其顿', 'ML': '马里',
+              'MM': '缅甸', 'MN': '蒙古', 'MO': '澳门', 'MP': '北马里亚纳群岛', 'MQ': '马提尼克',
+              'MR': '毛里塔尼亚', 'MS': '蒙特塞拉特', 'MT': '马耳他', 'MU': '毛里求斯', 'MV': '马尔代夫',
+              'MW': '马拉维', 'MX': '墨西哥', 'MY': '马来西亚', 'MZ': '莫桑比克', 'NA': '纳米比亚',
+              'NC': '新喀里多尼亚', 'NE': '尼日尔', 'NF': '诺福克岛', 'NG': '尼日利亚', 'NI': '尼加拉瓜',
+              'NL': '荷兰', 'NO': '挪威', 'NP': '尼泊尔', 'NR': '瑙鲁', 'NU': '纽埃',
+              'NZ': '新西兰', 'OM': '阿曼', 'PA': '巴拿马', 'PE': '秘鲁', 'PF': '法属波利尼西亚',
+              'PG': '巴布亚新几内亚', 'PH': '菲律宾', 'PK': '巴基斯坦', 'PL': '波兰', 'PM': '圣皮埃尔和密克隆',
+              'PN': '皮特凯恩群岛', 'PR': '波多黎各', 'PS': '巴勒斯坦', 'PT': '葡萄牙', 'PW': '帕劳',
+              'PY': '巴拉圭', 'QA': '卡塔尔', 'RE': '留尼汪', 'RO': '罗马尼亚', 'RS': '塞尔维亚',
+              'RU': '俄罗斯', 'RW': '卢旺达', 'SA': '沙特阿拉伯', 'SB': '所罗门群岛', 'SC': '塞舌尔',
+              'SD': '苏丹', 'SE': '瑞典', 'SG': '新加坡', 'SH': '圣赫勒拿', 'SI': '斯洛文尼亚',
+              'SJ': '斯瓦尔巴和扬马延', 'SK': '斯洛伐克', 'SL': '塞拉利昂', 'SM': '圣马力诺', 'SN': '塞内加尔',
+              'SO': '索马里', 'SR': '苏里南', 'SS': '南苏丹', 'ST': '圣多美和普林西比', 'SV': '萨尔瓦多',
+              'SX': '荷属圣马丁', 'SY': '叙利亚', 'SZ': '斯威士兰', 'TC': '特克斯和凯科斯群岛', 'TD': '乍得',
+              'TF': '法属南部领地', 'TG': '多哥', 'TH': '泰国', 'TJ': '塔吉克斯坦', 'TK': '托克劳',
+              'TL': '东帝汶', 'TM': '土库曼斯坦', 'TN': '突尼斯', 'TO': '汤加', 'TR': '土耳其',
+              'TT': '特立尼达和多巴哥', 'TV': '图瓦卢', 'TW': '台湾', 'TZ': '坦桑尼亚', 'UA': '乌克兰',
+              'UG': '乌干达', 'UM': '美国本土外小岛屿', 'US': '美国', 'UY': '乌拉圭', 'UZ': '乌兹别克斯坦',
+              'VA': '梵蒂冈', 'VC': '圣文森特和格林纳丁斯', 'VE': '委内瑞拉', 'VG': '英属维尔京群岛',
+              'VI': '美属维尔京群岛', 'VN': '越南', 'VU': '瓦努阿图', 'WF': '瓦利斯和富图纳', 'WS': '萨摩亚',
+              'YE': '也门', 'YT': '马约特', 'ZA': '南非', 'ZM': '赞比亚', 'ZW': '津巴布韦',
+          }
+
+          # 下载 GeoIP 数据库（如果本地没有则下载，否则可跳过以加速）
+          GEOIP_URL = "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb.gz"
+          GEOIP_GZ = "GeoLite2-Country.mmdb.gz"
+          GEOIP_DB = "GeoLite2-Country.mmdb"
+
+          if not os.path.exists(GEOIP_DB):
+              print("下载 GeoIP 数据库...")
+              try:
+                  r = requests.get(GEOIP_URL, timeout=30, stream=True)
+                  r.raise_for_status()
+                  with open(GEOIP_GZ, 'wb') as f:
+                      for chunk in r.iter_content(chunk_size=8192):
+                          f.write(chunk)
+                  # 解压
+                  with gzip.open(GEOIP_GZ, 'rb') as f_in:
+                      with open(GEOIP_DB, 'wb') as f_out:
+                          shutil.copyfileobj(f_in, f_out)
+                  os.remove(GEOIP_GZ)
+                  print("GeoIP 数据库准备完毕")
+              except Exception as e:
+                  print(f"下载 GeoIP 数据库失败: {e}")
+                  sys.exit(1)
+
+          # 初始化 GeoIP 读取器
+          reader = geoip2.database.Reader(GEOIP_DB)
+
+          def get_country_name(server):
+              """根据 server（IP 或域名）返回国家中文名，若失败返回 None"""
+              # 判断是否为 IP
+              ip = None
+              try:
+                  socket.inet_aton(server)
+                  ip = server
+              except socket.error:
+                  # 可能是域名，尝试解析
+                  try:
+                      ip = socket.gethostbyname(server)
+                  except socket.gaierror:
+                      print(f"域名解析失败: {server}")
+                      return None
+              # 查询 GeoIP
+              try:
+                  response = reader.country(ip)
+                  country_code = response.country.iso_code
+                  if country_code in COUNTRY_NAMES:
+                      return COUNTRY_NAMES[country_code]
+                  else:
+                      return country_code  # 返回代码本身
+              except geoip2.errors.AddressNotFoundError:
+                  print(f"IP 地址未找到: {ip}")
+                  return None
+
+          # 读取 urls.txt
+          urls_file = "urls.txt"
+          if not os.path.exists(urls_file):
+              print("urls.txt 不存在，退出")
+              sys.exit(1)
+
+          with open(urls_file, 'r', encoding='utf-8') as f:
+              urls = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+
+          # 存储合并后的节点（按顺序），同时记录已出现的 server 地址
+          merged_proxies = []
+          seen_servers = set()
+          # 用于生成带序号的国家名
+          country_counter = {}
+
+          # 用于存储最终的配置（从第一个有效的 YAML 中提取其他部分）
+          final_config = None
+          first_config_loaded = False
+
+          # 遍历每个 URL
+          for url in urls:
+              print(f"处理: {url}")
+              try:
+                  # 下载 YAML，设置重试
+                  response = requests.get(url, timeout=30)
+                  response.raise_for_status()
+                  content = response.text
+                  # 解析 YAML
+                  data = yaml.safe_load(content)
+                  if not data:
+                      print("  空内容，跳过")
+                      continue
+
+                  # 记录第一个有效配置的顶层结构（除 proxies 和 proxy-groups 外的其他部分）
+                  if not first_config_loaded:
+                      final_config = data
+                      # 清空 proxies 和 proxy-groups，稍后覆盖
+                      final_config['proxies'] = []
+                      final_config['proxy-groups'] = []
+                      first_config_loaded = True
+
+                  # 处理 proxies
+                  if 'proxies' in data and isinstance(data['proxies'], list):
+                      for proxy in data['proxies']:
+                          server = proxy.get('server')
+                          if not server:
+                              # 没有 server 字段的节点也保留，但跳过去重（因为无法判断重复）
+                              # 直接添加，但我们需要生成 name
+                              new_proxy = proxy.copy()
+                              # 为没有 server 的节点保留原名称，不修改
+                              merged_proxies.append(new_proxy)
+                              continue
+
+                          # 去重：如果 server 已存在，跳过
+                          server_key = server.strip().lower()
+                          if server_key in seen_servers:
+                              print(f"  跳过重复 server: {server}")
+                              continue
+                          seen_servers.add(server_key)
+
+                          # 生成国家名
+                          country = get_country_name(server)
+                          if country is None:
+                              # 若无法获取国家，保留原 name（或使用默认）
+                              new_name = proxy.get('name', 'Unknown')
+                          else:
+                              # 处理同一国家名加数字
+                              if country not in country_counter:
+                                  country_counter[country] = 0
+                              country_counter[country] += 1
+                              if country_counter[country] == 1:
+                                  new_name = country
+                              else:
+                                  new_name = f"{country}{country_counter[country]}"
+
+                          # 复制并修改 name
+                          new_proxy = proxy.copy()
+                          new_proxy['name'] = new_name
+                          merged_proxies.append(new_proxy)
+                  else:
+                      print("  没有 proxies 字段或格式不正确")
+
+                  # 处理 proxy-groups：我们不直接合并，而是稍后生成统一的组
+                  # 如果有多个 proxy-groups，可选择保留第一个配置中的组结构，但题目要求“保留一个 proxy-groups”
+                  # 我们稍后生成一个 select 组包含所有节点
+              except Exception as e:
+                  print(f"  下载或解析失败: {e}")
+                  continue  # 跳过该 URL，继续下一个
+
+          if not merged_proxies:
+              print("没有合并到任何节点，退出")
+              sys.exit(1)
+
+          # 生成统一的 proxy-groups
+          # 获取所有节点的 name 列表
+          proxy_names = [p['name'] for p in merged_proxies if 'name' in p]
+          # 创建一个 select 组
+          default_group = {
+              'name': 'Proxy',
+              'type': 'select',
+              'proxies': proxy_names
+          }
+          # 如果 final_config 已存在，则将其 proxy-groups 替换为这个组
+          if final_config:
+              final_config['proxies'] = merged_proxies
+              final_config['proxy-groups'] = [default_group]
+          else:
+              # 如果没有加载到任何配置，新建一个简单配置
+              final_config = {
+                  'proxies': merged_proxies,
+                  'proxy-groups': [default_group],
+                  'rules': []  # 可选
+              }
+
+          # 写入 final.yaml
+          with open('final.yaml', 'w', encoding='utf-8') as f:
+              yaml.dump(final_config, f, allow_unicode=True, sort_keys=False)
+          print("已生成 final.yaml")
+
+          # 关闭 GeoIP 读取器
+          reader.close()
+
+          EOF
+
+      - name: Commit and push final.yaml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add final.yaml
+          # 如果有变更才提交
+          if git diff --staged --quiet; then
+            echo "没有变化，跳过提交"
+          else
+            git commit -m "Auto merge Clash nodes"
+            git push
+          fi
