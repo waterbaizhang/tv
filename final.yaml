@@ -1,19 +1,28 @@
-secret: alvin9999.com
-mixed-port: 7890
+port: 7890
+socks-port: 7891
 allow-lan: false
+mode: rule
 log-level: info
+external-controller: 127.0.0.1:9090
 dns:
-  enabled: true
-  nameserver:
-  - 119.29.29.29
+  enable: true
+  ipv6: false
+  default-nameserver:
   - 223.5.5.5
+  - 114.114.114.114
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+  - https://doh.pub/dns-query
+  - https://dns.alidns.com/dns-query
+  fallback:
+  - tls://1.0.0.1:853
+  - tls://dns.google:853
   fallback-filter:
-    geoip: false
-    ipcidr:
-    - 240.0.0.0/4
-    - 0.0.0.0/32
+    geoip: true
+  geodata-mode: true
 proxies:
-- name: alvin9999.com
+- name: 德国
   server: ip1.758733.xyz
   port: 10088
   type: tuic
@@ -26,7 +35,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: alvin9999.com_2
+- name: 未知
   type: vless
   server: 2001:bc8:32d7:181::3
   port: 17401
@@ -50,7 +59,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: alvin9999.com_3
+- name: 未知 1
   type: vless
   server: 2001:bc8:32d7:181::4
   port: 17401
@@ -74,7 +83,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: alvin9999.com_4
+- name: 未知 2
   type: vless
   server: 2001:bc8:32d7:181::5
   port: 17401
@@ -98,7 +107,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: https://github.com/Alvin9999-newpac/fanqiang/wiki
+- name: 法国
   type: hysteria
   server: 195.154.200.13
   port: 45008
@@ -110,7 +119,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_1
+- name: 未知 3
   type: vless
   server: 2001:bc8:32d7:181::2
   port: 17401
@@ -134,7 +143,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: dongtaiwang.com_0
+- name: 美国
   server: 157.254.223.24
   port: 41122
   type: tuic
@@ -147,7 +156,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: dongtaiwang.com_0
+- name: 美国 1
   server: 157.254.223.48
   port: 11540
   type: tuic
@@ -160,7 +169,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: https://github.com/Alvin9999-newpac/fanqiang/wiki
+- name: 未知 4
   type: hysteria
   server: 2a14:7584:d097::a
   port: 54177
@@ -172,14 +181,14 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: dongtaiwang.com_0
+- name: 香港
   type: mieru
   server: 151.242.183.103
   port: 23014
   transport: TCP
   username: tcp_3flnfpno
   password: A4Hv3H5yb8meP1MN
-- name: dongtaiwang.com_1
+- name: 德国 1
   server: 5.178.101.117
   port: 30006
   type: tuic
@@ -192,7 +201,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: dongtaiwang.com_0
+- name: 香港 1
   type: anytls
   server: 151.242.183.75
   port: 33333
@@ -206,7 +215,7 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: dongtaiwang.com_0
+- name: 台湾
   type: anytls
   server: fan2.856098.xyz
   port: 8443
@@ -224,18 +233,19 @@ proxy-groups:
 - name: Proxy
   type: select
   proxies:
-  - alvin9999.com
-  - alvin9999.com_2
-  - alvin9999.com_3
-  - alvin9999.com_4
-  - https://github.com/Alvin9999-newpac/fanqiang/wiki
-  - dongtaiwang.com_1
-  - dongtaiwang.com_0
-  - dongtaiwang.com_0
-  - https://github.com/Alvin9999-newpac/fanqiang/wiki
-  - dongtaiwang.com_0
-  - dongtaiwang.com_1
-  - dongtaiwang.com_0
-  - dongtaiwang.com_0
+  - 德国
+  - 未知
+  - 未知 1
+  - 未知 2
+  - 法国
+  - 未知 3
+  - 美国
+  - 美国 1
+  - 未知 4
+  - 香港
+  - 德国 1
+  - 香港 1
+  - 台湾
 rules:
-- MATCH,🚀 节点选择
+- GEOIP,CN,DIRECT
+- MATCH,Proxy
