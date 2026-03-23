@@ -31,7 +31,6 @@ MMDB = "GeoLite2-City.mmdb"
 
 reader = geoip2.database.Reader(MMDB)
 
-# ===== GeoIP =====
 def get_country(ip):
     try:
         r = reader.city(ip)
@@ -45,7 +44,6 @@ def resolve_ip(host):
     except:
         return host
 
-# ===== 拉取 =====
 def fetch(url):
     try:
         r = requests.get(url, timeout=10)
@@ -63,7 +61,7 @@ def fetch(url):
         print("跳过:", url)
         return None
 
-# ===== 读取 URL =====
+# ===== 拉取 =====
 with open(URL_FILE, encoding="utf-8") as f:
     urls = [x.strip() for x in f if x.strip()]
 
@@ -75,7 +73,7 @@ with ThreadPoolExecutor(max_workers=10) as ex:
         if r:
             datas.append(r)
 
-# ===== 合并节点 =====
+# ===== 合并 =====
 seen = set()
 proxies = []
 country_count = {}
@@ -98,105 +96,227 @@ for data in datas:
         proxies.append(p)
 
 # ===== 分组 =====
-all_names = [p["name"] for p in proxies]
+groups = []
 
-groups = [
-    {
-        "name": "🚀 节点选择",
+country_groups = {}
+for p in proxies:
+    cname = ''.join(filter(str.isalpha, p["name"]))
+    country_groups.setdefault(cname, []).append(p["name"])
+
+for c, nodes in country_groups.items():
+    groups.append({
+        "name": c,
         "type": "select",
-        "proxies": ["⚡ 自动选择", "🌍 全球直连"] + all_names
-    },
-    {
-        "name": "⚡ 自动选择",
-        "type": "url-test",
-        "url": "http://www.gstatic.com/generate_204",
-        "interval": 300,
-        "proxies": all_names
-    },
-    {
-        "name": "🌍 全球直连",
-        "type": "select",
-        "proxies": ["DIRECT"]
-    }
-]
+        "proxies": nodes
+    })
 
-# ===== 规则系统（核心升级）=====
-rule_providers = {
-    "cn": {
-        "type": "http",
-        "behavior": "domain",
-        "url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cn.txt",
-        "path": "./ruleset/cn.yaml",
-        "interval": 86400
-    },
-    "proxy": {
-        "type": "http",
-        "behavior": "domain",
-        "url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/proxy.txt",
-        "path": "./ruleset/proxy.yaml",
-        "interval": 86400
-    },
-    "direct": {
-        "type": "http",
-        "behavior": "domain",
-        "url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt",
-        "path": "./ruleset/direct.yaml",
-        "interval": 86400
-    }
-}
+groups.insert(0, {
+    "name": "🚀 节点选择",
+    "type": "select",
+    "proxies": [g["name"] for g in groups]
+})
 
-rules = [
-    "RULE-SET,cn,🌍 全球直连",
-    "RULE-SET,direct,🌍 全球直连",
-    "RULE-SET,proxy,🚀 节点选择",
-    "MATCH,🚀 节点选择"
-]
+groups.append({
+    "name": "⚡ 自动选择",
+    "type": "url-test",
+    "url": "http://www.gstatic.com/generate_204",
+    "interval": 300,
+    "proxies": [p["name"] for p in proxies]
+})
 
-# ===== 主配置 =====
-base_config = {
+# ===== 输出 final.yaml =====
+final = {
     "mixed-port": 7890,
     "mode": "rule",
     "log-level": "info",
     "proxies": proxies,
-    "proxy-groups": groups,
-    "rule-providers": rule_providers,
-    "rules": rules
+    "proxy-groups": groups
 }
 
-# ===== 输出 =====
-def save(name, data):
-    with open(name, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, allow_unicode=True, sort_keys=False)
+with open("final.yaml", "w", encoding="utf-8") as f:
+    yaml.dump(final, f, allow_unicode=True, sort_keys=False)
 
-# 全量
-save("sub.yaml", base_config)
+# ===== 输出 sub.yaml（订阅）=====
+sub = {
+    "proxies": proxies,
+    "proxy-groups": groups
+}
 
-# 全球代理版
-global_cfg = base_config.copy()
-global_cfg["rules"] = ["MATCH,🚀 节点选择"]
-save("sub_global.yaml", global_cfg)
+with open("sub.yaml", "w", encoding="utf-8") as f:
+    yaml.dump(sub, f, allow_unicode=True, sort_keys=False)
 
-# 国内优化版
-cn_cfg = base_config.copy()
-cn_cfg["rules"] = [
-    "RULE-SET,cn,🌍 全球直连",
-    "MATCH,🚀 节点选择"
-]
-save("sub_cn.yaml", cn_cfg)
-
-# 游戏低延迟版
-game_cfg = base_config.copy()
-game_cfg["proxy-groups"][0]["proxies"] = ["⚡ 自动选择"]
-save("sub_game.yaml", game_cfg)
-
-# base64
-with open("sub.yaml", encoding="utf-8") as f:
+# ===== 输出 sub.txt（base64）=====
+with open("sub.yaml", "r", encoding="utf-8") as f:
     b64 = base64.b64encode(f.read().encode()).decode()
 
 with open("sub.txt", "w") as f:
     f.write(b64)
 
-print("✅ 规则 + 分流订阅生成完成l")
+print("✅ 机场订阅生成完成")
+EOF
+
+      - name: Push
+        run: |
+          git config --global user.name "bot"
+          git config --global user.email "bot@users.noreply.github.com"
+          git add .
+          git commit -m "update airport subscription" || echo "no change"
+          git pushname: Clash Airport Builder
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 23 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install pyyaml requests geoip2
+
+      - name: Build Airport
+        run: |
+          python << 'EOF'
+import yaml, requests, base64, socket
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import geoip2.database
+
+URL_FILE = "urls.txt"
+MMDB = "GeoLite2-City.mmdb"
+
+reader = geoip2.database.Reader(MMDB)
+
+def get_country(ip):
+    try:
+        r = reader.city(ip)
+        return r.country.names.get("zh-CN") or r.country.name or "未知"
+    except:
+        return "未知"
+
+def resolve_ip(host):
+    try:
+        return socket.gethostbyname(host)
+    except:
+        return host
+
+def fetch(url):
+    try:
+        r = requests.get(url, timeout=10)
+        txt = r.text.strip()
+
+        try:
+            d = base64.b64decode(txt).decode()
+            if "proxies:" in d:
+                txt = d
+        except:
+            pass
+
+        return yaml.safe_load(txt)
+    except:
+        print("跳过:", url)
+        return None
+
+# ===== 拉取 =====
+with open(URL_FILE, encoding="utf-8") as f:
+    urls = [x.strip() for x in f if x.strip()]
+
+datas = []
+with ThreadPoolExecutor(max_workers=10) as ex:
+    futures = [ex.submit(fetch, u) for u in urls]
+    for f in as_completed(futures):
+        r = f.result()
+        if r:
+            datas.append(r)
+
+# ===== 合并 =====
+seen = set()
+proxies = []
+country_count = {}
+
+for data in datas:
+    for p in data.get("proxies", []):
+        s = p.get("server")
+        if not s or s in seen:
+            continue
+
+        seen.add(s)
+
+        ip = resolve_ip(s)
+        country = get_country(ip)
+
+        idx = country_count.get(country, 0) + 1
+        country_count[country] = idx
+
+        p["name"] = f"{country}{idx}"
+        proxies.append(p)
+
+# ===== 分组 =====
+groups = []
+
+country_groups = {}
+for p in proxies:
+    cname = ''.join(filter(str.isalpha, p["name"]))
+    country_groups.setdefault(cname, []).append(p["name"])
+
+for c, nodes in country_groups.items():
+    groups.append({
+        "name": c,
+        "type": "select",
+        "proxies": nodes
+    })
+
+groups.insert(0, {
+    "name": "🚀 节点选择",
+    "type": "select",
+    "proxies": [g["name"] for g in groups]
+})
+
+groups.append({
+    "name": "⚡ 自动选择",
+    "type": "url-test",
+    "url": "http://www.gstatic.com/generate_204",
+    "interval": 300,
+    "proxies": [p["name"] for p in proxies]
+})
+
+# ===== 输出 final.yaml =====
+final = {
+    "mixed-port": 7890,
+    "mode": "rule",
+    "log-level": "info",
+    "proxies": proxies,
+    "proxy-groups": groups
+}
+
+with open("final.yaml", "w", encoding="utf-8") as f:
+    yaml.dump(final, f, allow_unicode=True, sort_keys=False)
+
+# ===== 输出 sub.yaml（订阅）=====
+sub = {
+    "proxies": proxies,
+    "proxy-groups": groups
+}
+
+with open("sub.yaml", "w", encoding="utf-8") as f:
+    yaml.dump(sub, f, allow_unicode=True, sort_keys=False)
+
+# ===== 输出 sub.txt（base64）=====
+with open("sub.yaml", "r", encoding="utf-8") as f:
+    b64 = base64.b64encode(f.read().encode()).decode()
+
+with open("sub.txt", "w") as f:
+    f.write(b64)
+
+print("✅ 机场订阅生成完成")
+EOF
 
       - name: Push
         run: |
