@@ -1,99 +1,241 @@
-name: Merge Clash YAML Configuration
+name: Merge Clash Nodes
 
 on:
   schedule:
-    - cron: '0 23 * * *'  # UTC时间，每天北京时间7点执行一次
-  workflow_dispatch:  # 支持手动触发
+    # 每天 UTC 23:00 执行，对应北京时间次日 7:00
+    - cron: '0 23 * * *'
+  workflow_dispatch:   # 支持手动触发
 
 jobs:
-  merge-yaml:
+  merge:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # 允许推送代码
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # 避免使用默认 token 导致权限问题，后续用我们自己的 token
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Install dependencies
+        run: pip install pyyaml requests
+
+      - name: Merge and generate final.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip
-          pip3 install pyyaml requests geoip2
+          python - << 'EOF'
+          import sys
+          import os
+          import re
+          import requests
+          import yaml
+          import socket
+          import time
+          from collections import OrderedDict
 
-      - name: Run Python Script to Merge YAML
-        run: |
-          python3 -c "
-import os
-import yaml
-import requests
-import geoip2.database
-from collections import defaultdict
+          # 国家英文名 / 代码 → 中文名映射
+          COUNTRY_MAP = {
+              'United States': '美国', 'US': '美国',
+              'Japan': '日本', 'JP': '日本',
+              'Singapore': '新加坡', 'SG': '新加坡',
+              'Hong Kong': '香港', 'HK': '香港',
+              'Taiwan': '台湾', 'TW': '台湾',
+              'Korea': '韩国', 'KR': '韩国',
+              'United Kingdom': '英国', 'UK': '英国',
+              'France': '法国', 'FR': '法国',
+              'Germany': '德国', 'DE': '德国',
+              'Canada': '加拿大', 'CA': '加拿大',
+              'Australia': '澳大利亚', 'AU': '澳大利亚',
+              'Netherlands': '荷兰', 'NL': '荷兰',
+              'India': '印度', 'IN': '印度',
+              'Brazil': '巴西', 'BR': '巴西',
+              'Russia': '俄罗斯', 'RU': '俄罗斯',
+              'Vietnam': '越南', 'VN': '越南',
+              'Malaysia': '马来西亚', 'MY': '马来西亚',
+              'Indonesia': '印度尼西亚', 'ID': '印度尼西亚',
+              'Thailand': '泰国', 'TH': '泰国',
+              'Philippines': '菲律宾', 'PH': '菲律宾',
+              'Turkey': '土耳其', 'TR': '土耳其',
+              'UAE': '阿联酋', 'AE': '阿联酋',
+              'Saudi Arabia': '沙特阿拉伯', 'SA': '沙特阿拉伯',
+              'South Africa': '南非', 'ZA': '南非',
+              'Argentina': '阿根廷', 'AR': '阿根廷',
+              'Mexico': '墨西哥', 'MX': '墨西哥',
+              'Italy': '意大利', 'IT': '意大利',
+              'Spain': '西班牙', 'ES': '西班牙',
+              'Sweden': '瑞典', 'SE': '瑞典',
+              'Switzerland': '瑞士', 'CH': '瑞士',
+              'Poland': '波兰', 'PL': '波兰',
+              'Ukraine': '乌克兰', 'UA': '乌克兰',
+              'China': '中国', 'CN': '中国',
+              'Unknown': '未知',
+          }
 
-# 定义文件路径
-urls_file = 'urls.txt'
-final_yaml = 'final.yaml'
+          # IP 地理位置缓存
+          geo_cache = {}
 
-# 下载YAML文件函数
-def download_yaml(url):
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        return yaml.safe_load(response.text)
-    except requests.RequestException:
-        print(f'Failed to download {url}, skipping...')
-        return None
+          def get_country_name(host):
+              """根据主机名（IP 或域名）获取国家中文名"""
+              # 如果是域名，先解析成 IP
+              ip = host
+              if not re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', host):
+                  try:
+                      ip = socket.gethostbyname(host)
+                  except Exception as e:
+                      print(f'DNS lookup failed for {host}: {e}')
+                      return '未知'
+              
+              if ip in geo_cache:
+                  return geo_cache[ip]
+              
+              try:
+                  # 使用 ip-api.com 免费服务
+                  url = f'http://ip-api.com/json/{ip}?fields=status,country,countryCode'
+                  resp = requests.get(url, timeout=5)
+                  data = resp.json()
+                  if data.get('status') == 'success':
+                      country_en = data.get('country', 'Unknown')
+                      country_code = data.get('countryCode', '')
+                      cn_name = COUNTRY_MAP.get(country_en, COUNTRY_MAP.get(country_code, country_en))
+                      geo_cache[ip] = cn_name
+                      return cn_name
+                  else:
+                      print(f'Geo lookup failed for {ip}: {data}')
+                      geo_cache[ip] = '未知'
+                      return '未知'
+              except Exception as e:
+                  print(f'Geo request error for {ip}: {e}')
+                  geo_cache[ip] = '未知'
+                  return '未知'
 
-# 从urls.txt读取所有URL
-with open(urls_file, 'r') as f:
-    urls = [line.strip() for line in f.readlines()]
+          def download_yaml(url):
+              """下载并解析 YAML，返回 proxies 列表，失败返回 None"""
+              try:
+                  headers = {'User-Agent': 'Mozilla/5.0'}
+                  resp = requests.get(url, timeout=30, headers=headers)
+                  resp.raise_for_status()
+                  data = yaml.safe_load(resp.text)
+                  if data and 'proxies' in data and isinstance(data['proxies'], list):
+                      return data['proxies']
+                  else:
+                      print(f'No proxies list in {url}')
+                      return []
+              except Exception as e:
+                  print(f'Failed to download {url}: {e}')
+                  return None
 
-# 初始化合并的proxies和proxy-groups
-proxies = []
-proxy_groups = {'proxy-groups': [{'name': 'Proxy Group', 'type': 'select', 'proxies': []}]}
-seen_servers = set()
+          def main():
+              urls_file = 'urls.txt'
+              if not os.path.exists(urls_file):
+                  print('urls.txt not found')
+                  sys.exit(1)
+              
+              with open(urls_file, 'r', encoding='utf-8') as f:
+                  urls = [line.strip() for line in f if line.strip()]
+              
+              all_proxies = []
+              seen_servers = set()
+              
+              for url in urls:
+                  proxies = download_yaml(url)
+                  if proxies is None:
+                      continue
+                  for proxy in proxies:
+                      if not isinstance(proxy, dict):
+                          continue
+                      server = proxy.get('server')
+                      if not server:
+                          continue
+                      if server in seen_servers:
+                          print(f'Skipping duplicate server {server}')
+                          continue
+                      seen_servers.add(server)
+                      # 重命名节点为国家中文名
+                      country = get_country_name(server)
+                      proxy['name'] = country
+                      all_proxies.append(proxy)
+                      time.sleep(0.5)   # 控制请求频率，避免触发限速
+              
+              # 处理同名（相同中文名加数字后缀）
+              name_count = {}
+              for proxy in all_proxies:
+                  name = proxy['name']
+                  if name in name_count:
+                      name_count[name] += 1
+                      proxy['name'] = f'{name} {name_count[name]}'
+                  else:
+                      name_count[name] = 0   # 第一个不加后缀
+              
+              # 构建 proxy-groups（只保留一个）
+              proxy_names = [proxy['name'] for proxy in all_proxies]
+              proxy_groups = [
+                  {
+                      'name': 'Proxy',
+                      'type': 'select',
+                      'proxies': proxy_names
+                  }
+              ]
+              
+              # 完整 Clash 配置模板（兼容 clash / mihomo）
+              config = {
+                  'port': 7890,
+                  'socks-port': 7891,
+                  'allow-lan': False,
+                  'mode': 'rule',
+                  'log-level': 'info',
+                  'external-controller': '127.0.0.1:9090',
+                  'dns': {
+                      'enable': True,
+                      'ipv6': False,
+                      'default-nameserver': ['223.5.5.5', '114.114.114.114'],
+                      'enhanced-mode': 'fake-ip',
+                      'fake-ip-range': '198.18.0.1/16',
+                      'nameserver': ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
+                      'fallback': ['tls://1.0.0.1:853', 'tls://dns.google:853'],
+                      'fallback-filter': {'geoip': True},
+                      'geodata-mode': True   # 开启 geoip 服务
+                  },
+                  'proxies': all_proxies,
+                  'proxy-groups': proxy_groups,
+                  'rules': [
+                      'GEOIP,CN,DIRECT',
+                      'MATCH,Proxy'
+                  ]
+              }
+              
+              # 写入 final.yaml
+              with open('final.yaml', 'w', encoding='utf-8') as f:
+                  yaml.dump(config, f, allow_unicode=True, sort_keys=False)
+              
+              print(f'Generated final.yaml with {len(all_proxies)} proxies.')
+              
+              # 提交并推送更改
+              token = os.environ.get('GITHUB_TOKEN')
+              repo = os.environ.get('GITHUB_REPOSITORY')
+              if token and repo:
+                  os.system('git config user.name "github-actions[bot]"')
+                  os.system('git config user.email "github-actions[bot]@users.noreply.github.com"')
+                  os.system('git add final.yaml')
+                  # 检查是否有变化
+                  status = os.system('git diff --cached --quiet')
+                  if status != 0:
+                      os.system('git commit -m "Update final.yaml [skip ci]"')
+                      remote_url = f'https://x-access-token:{token}@github.com/{repo}.git'
+                      os.system(f'git remote set-url origin {remote_url}')
+                      os.system('git push origin HEAD:main')
+                  else:
+                      print('No changes to commit.')
+              else:
+                  print('GITHUB_TOKEN or GITHUB_REPOSITORY not set, skipping push.')
 
-# IP到国家名解析函数
-def get_country_name_from_ip(ip):
-    try:
-        client = geoip2.database.Reader('/usr/share/GeoIP2-City.mmdb')
-        response = client.city(ip)
-        country = response.country.name
-        return country
-    except Exception:
-        return 'Unknown'
-
-# 合并所有YAML文件
-for url in urls:
-    yaml_data = download_yaml(url)
-    if yaml_data is None:
-        continue
-
-    for proxy in yaml_data.get('proxies', []):
-        server = proxy.get('server')
-        if server and server not in seen_servers:
-            country_name = get_country_name_from_ip(server)
-            name = f"{country_name}"
-            # 如果已经有这个国家名，自动加1
-            count = sum(1 for p in proxies if p['name'] == name)
-            if count > 0:
-                name = f"{country_name} ({count+1})"
-            proxy['name'] = name
-            seen_servers.add(server)
-            proxies.append(proxy)
-
-# 合并到proxy-groups
-proxy_groups['proxy-groups'][0]['proxies'] = [p['name'] for p in proxies]
-
-# 如果final.yaml存在，覆盖它
-final_config = {'proxies': proxies, **proxy_groups}
-
-# 输出合并后的final.yaml
-with open(final_yaml, 'w', encoding='utf-8') as f:
-    yaml.dump(final_config, f, allow_unicode=True)
-
-# 推送更新到GitHub
-os.system('git config --global user.name "GitHub Actions"')
-os.system('git config --global user.email "actions@github.com"')
-os.system('git add .')
-os.system('git commit -m "Update final.yaml"')
-os.system('git push origin main')
-          "
+          if __name__ == '__main__':
+              main()
+          EOF
