@@ -230,9 +230,11 @@ proxies:
   - http/1.1
   skip-cert-verify: true
 proxy-groups:
-- name: Proxy
-  type: select
-  proxies:
+- name: ♻️ 自动选择
+  type: fallback
+  url: https://www.gstatic.com/generate_204
+  interval: 5
+  proxies: &id001
   - 德国
   - 未知
   - 未知 1
@@ -246,6 +248,30 @@ proxy-groups:
   - 德国 1
   - 香港 1
   - 台湾
+- name: 🌍 国外媒体
+  type: select
+  proxies: *id001
+- name: 📲 电报信息
+  type: select
+  proxies: *id001
+- name: Ⓜ️ 微软服务
+  type: select
+  proxies: *id001
+- name: 🍎 苹果服务
+  type: select
+  proxies: *id001
+- name: 🎯 全球直连
+  type: select
+  proxies: *id001
+- name: 🛑 全球拦截
+  type: select
+  proxies: *id001
+- name: 🍃 应用净化
+  type: select
+  proxies: *id001
+- name: 🐟 漏网之鱼
+  type: select
+  proxies: *id001
 rules:
 - GEOIP,CN,DIRECT
 - MATCH,Proxy
