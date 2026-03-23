@@ -1,189 +1,97 @@
-name: Merge Clash Nodes
+name: Merge Clash Configurations
 
 on:
   schedule:
-    - cron: '0 23 * * *'   # UTC 23:00 = 北京时间 7:00
-  workflow_dispatch:
+    - cron: '0 23 * * *' # UTC时间每天7点执行 (北京时间7点对应UTC时间23点)
+  workflow_dispatch: # 支持手动触发
 
 jobs:
-  merge:
+  merge-configs:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          python-version: '3.11'
+          python-version: '3.x'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install requests pyyaml
+          pip install pyyaml requests geoip2
 
-      - name: Merge nodes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Merge YAML files and generate final.yaml
         run: |
-          python << 'EOF'
-          import os, sys, socket, requests, yaml, time
-          from collections import OrderedDict
+          import os
+          import yaml
+          import requests
+          from geoip import geolite2
+          from collections import defaultdict
 
-          # ---------- 配置 ----------
-          # 国家代码到中文名的映射（可自行补充）
-          COUNTRY_NAMES = {
-              'CN': '中国', 'US': '美国', 'JP': '日本', 'KR': '韩国', 'HK': '香港', 'TW': '台湾',
-              'SG': '新加坡', 'GB': '英国', 'DE': '德国', 'FR': '法国', 'CA': '加拿大', 'AU': '澳大利亚',
-              'RU': '俄罗斯', 'IN': '印度', 'BR': '巴西', 'ZA': '南非', 'IT': '意大利', 'ES': '西班牙',
-              'NL': '荷兰', 'SE': '瑞典', 'NO': '挪威', 'DK': '丹麦', 'FI': '芬兰', 'CH': '瑞士',
-              'BE': '比利时', 'AT': '奥地利', 'PL': '波兰', 'CZ': '捷克', 'HU': '匈牙利', 'TR': '土耳其',
-              'TH': '泰国', 'VN': '越南', 'MY': '马来西亚', 'ID': '印度尼西亚', 'PH': '菲律宾', 'AE': '阿联酋',
-              'SA': '沙特阿拉伯', 'IL': '以色列', 'EG': '埃及', 'NG': '尼日利亚', 'MX': '墨西哥',
-              # 可根据需要添加更多
-          }
+          # Helper function to resolve country name from IP or domain using GeoIP
+          def resolve_country(ip):
+              match = geolite2.lookup(ip)
+              return match.country if match else 'Unknown'
 
-          # 在线查询函数，使用 ip-api.com（免费，无需 API 密钥）
-          def get_country_name(server):
-              """根据 server（IP 或域名）返回国家中文名，失败返回 None"""
+          # Read URLs from urls.txt
+          def read_urls():
+              urls = []
+              with open('urls.txt', 'r') as file:
+                  for line in file:
+                      urls.append(line.strip())
+              return urls
+
+          # Download YAML files from URLs
+          def download_yaml(url):
               try:
-                  # 将域名解析为 IP
-                  ip = server
-                  try:
-                      socket.inet_aton(server)
-                  except socket.error:
-                      ip = socket.gethostbyname(server)
-                  
-                  # 调用 ip-api.com，仅获取国家代码
-                  url = f"http://ip-api.com/json/{ip}?fields=countryCode"
-                  resp = requests.get(url, timeout=10)
-                  if resp.status_code == 200:
-                      data = resp.json()
-                      if data.get('status') == 'success':
-                          code = data.get('countryCode')
-                          if code in COUNTRY_NAMES:
-                              return COUNTRY_NAMES[code]
-                          else:
-                              # 若映射表中没有，返回国家代码本身
-                              return code
-              except Exception as e:
-                  print(f"  国家查询失败 ({server}): {e}")
-              return None
+                  response = requests.get(url, timeout=10)
+                  response.raise_for_status()
+                  return yaml.safe_load(response.text)
+              except requests.RequestException as e:
+                  print(f"Failed to download {url}: {e}")
+                  return None
 
-          # ---------- 读取 urls.txt ----------
-          urls_file = "urls.txt"
-          if not os.path.exists(urls_file):
-              print("未找到 urls.txt，退出")
-              sys.exit(1)
+          # Merge proxies nodes
+          def merge_proxies(proxies_list):
+              proxies_map = {}
+              for proxy in proxies_list:
+                  if proxy.get('server') and proxy['server'] not in proxies_map:
+                      country = resolve_country(proxy['server'])
+                      proxy['name'] = f"{country}节点"  # 设置国家名
+                      proxies_map[proxy['server']] = proxy
+              return list(proxies_map.values())
 
-          with open(urls_file, 'r', encoding='utf-8') as f:
-              urls = [line.strip() for line in f if line.strip() and not line.startswith('#')]
-
-          merged_proxies = []
-          seen_servers = set()
-          country_counter = {}
-          final_config = None
-          first_config_loaded = False
-
-          # 遍历每个 URL
+          # Read URLs and download YAML files
+          urls = read_urls()
+          all_proxies = []
           for url in urls:
-              print(f"处理: {url}")
-              try:
-                  resp = requests.get(url, timeout=30)
-                  resp.raise_for_status()
-                  data = yaml.safe_load(resp.text)
-                  if not data:
-                      print("  空内容，跳过")
-                      continue
+              config = download_yaml(url)
+              if config:
+                  all_proxies.extend(config.get('proxies', []))
 
-                  # 记录第一个有效配置的顶层结构（除 proxies 和 proxy-groups 外的其他部分）
-                  if not first_config_loaded:
-                      final_config = data
-                      final_config['proxies'] = []
-                      final_config['proxy-groups'] = []
-                      first_config_loaded = True
-
-                  if 'proxies' in data and isinstance(data['proxies'], list):
-                      for proxy in data['proxies']:
-                          server = proxy.get('server')
-                          if not server:
-                              # 没有 server 的节点保留原样
-                              merged_proxies.append(proxy.copy())
-                              continue
-
-                          # 去重：基于 server 地址（忽略大小写）
-                          server_key = server.strip().lower()
-                          if server_key in seen_servers:
-                              print(f"  跳过重复 server: {server}")
-                              continue
-                          seen_servers.add(server_key)
-
-                          # 获取国家中文名
-                          country = get_country_name(server)
-                          if country is None:
-                              new_name = proxy.get('name', 'Unknown')
-                          else:
-                              # 同一国家名加数字后缀
-                              if country not in country_counter:
-                                  country_counter[country] = 0
-                              country_counter[country] += 1
-                              new_name = country if country_counter[country] == 1 else f"{country}{country_counter[country]}"
-
-                          new_proxy = proxy.copy()
-                          new_proxy['name'] = new_name
-                          merged_proxies.append(new_proxy)
-                  else:
-                      print("  无 proxies 字段或格式错误")
-              except Exception as e:
-                  print(f"  处理失败: {e}")
-                  continue  # 跳过该 URL，继续下一个
-
-          if not merged_proxies:
-              print("未获取到任何有效节点，退出")
-              sys.exit(1)
-
-          # 生成统一的 proxy-groups
-          proxy_names = [p['name'] for p in merged_proxies if 'name' in p]
-          default_group = {
-              'name': 'Proxy',
+          # Merge proxies and create final configuration
+          merged_proxies = merge_proxies(all_proxies)
+          proxy_groups = {
+              'name': 'Proxy Group',
               'type': 'select',
-              'proxies': proxy_names
+              'proxies': [proxy['name'] for proxy in merged_proxies]
           }
 
-          if final_config:
-              final_config['proxies'] = merged_proxies
-              final_config['proxy-groups'] = [default_group]
-          else:
-              final_config = {
-                  'proxies': merged_proxies,
-                  'proxy-groups': [default_group],
-                  'rules': []
-              }
+          final_config = {
+              'proxies': merged_proxies,
+              'proxy-groups': [proxy_groups],
+              'geoip': {'enabled': True},
+          }
 
-          # 写入 final.yaml
-          with open('final.yaml', 'w', encoding='utf-8') as f:
-              yaml.dump(final_config, f, allow_unicode=True, sort_keys=False)
+          # Write the final YAML to a file
+          with open('final.yaml', 'w', encoding='utf-8') as file:
+              yaml.dump(final_config, file, allow_unicode=True, default_flow_style=False)
 
-          print(f"生成 final.yaml，共 {len(merged_proxies)} 个节点")
-          EOF
-
-      - name: Commit and push
-        run: |
-          if [ ! -f final.yaml ]; then
-            echo "final.yaml 不存在，退出"
-            exit 1
-          fi
-          head -n 10 final.yaml
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add final.yaml
-          if git diff --staged --quiet; then
-            echo "final.yaml 内容未变，无需提交"
-          else
-            git commit -m "Auto merge Clash nodes at $(date -u +'%Y-%m-%d %H:%M:%S')"
-            git push origin HEAD:${{ github.ref_name }}
-            echo "已推送到仓库"
-          fi
+      - name: Commit and push final.yaml
+        uses: EndBug/add-and-commit@v7
+        with:
+          author_name: 'GitHub Actions'
+          author_email: 'github-actions@github.com'
+          message: 'Update final.yaml with merged proxies and proxy groups'
+          add: 'final.yaml'
