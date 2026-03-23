@@ -196,7 +196,7 @@ with open("sub.yaml", encoding="utf-8") as f:
 with open("sub.txt", "w") as f:
     f.write(b64)
 
-print("✅ 规则 + 分流订阅生成完成")
+print("✅ 规则 + 分流订阅生成完成l")
 
       - name: Push
         run: |
