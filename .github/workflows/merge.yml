@@ -1,211 +1,144 @@
-name: Clash Airport Builder
+name: Build Clash Config
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 23 * * *' # Runs at UTC 23:00, which is 07:00 Beijing time
+    - cron: "0 23 * * *"  # 每天 UTC 23 点执行，相当于北京时间早7点
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout Repo
+        uses: actions/checkout@v3  
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
+      - name: Install Python and Dependencies
         run: |
-          pip install pyyaml requests geoip2
+          sudo apt-get install -y geoip-bin
+          pip install pyyaml requests
 
-      - name: Build Airport Subscription and Rules
+      - name: Merge Clash Configs
         run: |
-          python << 'EOF'
-import yaml, requests, base64, socket
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import geoip2.database
+          cat > merge.py << 'EOF'
+          import yaml, requests, collections
+          import geoip2.database
 
-URL_FILE = "urls.txt"
-MMDB = "GeoLite2-City.mmdb"
+          # 读取 urls.txt 文件
+          urls = []
+          try:
+              with open("urls.txt", "r", encoding="utf-8") as f:
+                  for line in f:
+                      line = line.strip()
+                      if line and not line.startswith("#"):
+                          urls.append(line)
+          except FileNotFoundError:
+              print("❌ urls.txt not found!")
+              exit(1)
 
-reader = geoip2.database.Reader(MMDB)
+          merged_proxies = []
+          merged_rules = []
+          merged_groups = {}
 
-# ===== GeoIP =====
-def get_country(ip):
-    try:
-        r = reader.city(ip)
-        return r.country.names.get("zh-CN") or r.country.name or "未知"
-    except:
-        return "未知"
+          # GeoIP 查询函数，用于获取国家名称
+          def get_country_name(ip):
+              try:
+                  with geoip2.database.Reader('/usr/share/GeoIP/GeoLite2-Country.mmdb') as reader:
+                      response = reader.country(ip)
+                      return response.country.name
+              except Exception as e:
+                  print(f"❌ Error with GeoIP service: {e}")
+                  return None
 
-def resolve_ip(host):
-    try:
-        return socket.gethostbyname(host)
-    except:
-        return host
+          def rename_if_exists(items, name):
+              base = name
+              i = 1
+              while any(x["name"] == name for x in items):
+                  name = f"{base}-{i}"
+                  i += 1
+              return name
 
-# ===== Fetch data =====
-def fetch(url):
-    try:
-        r = requests.get(url, timeout=10)
-        txt = r.text.strip()
+          def safe_request(url):
+              try:
+                  r = requests.get(url, timeout=10)
+                  if r.status_code == 200:
+                      return r.text
+              except:
+                  return None
+              return None
 
-        try:
-            d = base64.b64decode(txt).decode()
-            if "proxies:" in d:
-                txt = d
-        except:
-            pass
+          print("Downloading and merging configurations...")
+          for url in urls:
+              text = safe_request(url)
+              if not text:
+                  print("❌ Skip invalid URL:", url)
+                  continue
+              try:
+                  data = yaml.safe_load(text)
+                  if not isinstance(data, dict):
+                      print("❌ Invalid YAML:", url)
+                      continue
+              except:
+                  print("❌ Failed to parse YAML:", url)
+                  continue
 
-        return yaml.safe_load(txt)
-    except:
-        print("Skipping:", url)
-        return None
+              # Merge proxies
+              if "proxies" in data:
+                  for p in data["proxies"]:
+                      # Check if the server IP is already in merged proxies
+                      existing = next((item for item in merged_proxies if item.get("server") == p.get("server")), None)
+                      if existing:
+                          continue  # Skip if the server IP already exists
+                      # Resolve country name based on server IP or domain
+                      country = get_country_name(p.get("server", ""))
+                      if country:
+                          p_copy = p.copy()
+                          p_copy["name"] = f"{country}-{rename_if_exists(merged_proxies, country)}"
+                          merged_proxies.append(p_copy)
 
-# ===== Load URLs =====
-with open(URL_FILE, encoding="utf-8") as f:
-    urls = [x.strip() for x in f if x.strip()]
+              # Merge rules
+              if "rules" in data:
+                  merged_rules.extend(data["rules"])
 
-datas = []
-with ThreadPoolExecutor(max_workers=10) as ex:
-    futures = [ex.submit(fetch, u) for u in urls]
-    for f in as_completed(futures):
-        r = f.result()
-        if r:
-            datas.append(r)
+              # Merge proxy-groups
+              if "proxy-groups" in data:
+                  for g in data["proxy-groups"]:
+                      g_name = g.get("name")
+                      if g_name not in merged_groups:
+                          merged_groups[g_name] = g.copy()
+                      else:
+                          pass  # If group exists, skip
 
-# ===== Merge Proxies =====
-seen = set()
-proxies = []
-country_count = {}
+          # 去重 rules
+          dedup_rules = list(collections.OrderedDict.fromkeys(merged_rules))
 
-for data in datas:
-    for p in data.get("proxies", []):
-        s = p.get("server")
-        if not s or s in seen:
-            continue
+          # 注入所有节点到 proxy-groups
+          proxy_names = [p["name"] for p in merged_proxies]
+          for g_name, g in merged_groups.items():
+              g_type = g.get("type", "").upper()
+              if g_type in ["SELECT", "URL-TEST", "FALLBACK", "LOAD-BALANCE"]:
+                  g["proxies"] = proxy_names
 
-        seen.add(s)
+          final = {
+              "proxies": merged_proxies,
+              "proxy-groups": list(merged_groups.values()),
+              "rules": dedup_rules
+          }
 
-        ip = resolve_ip(s)
-        country = get_country(ip)
+          # Write the merged final YAML file
+          with open("final.yaml", "w", encoding="utf-8") as f:
+              yaml.dump(final, f, allow_unicode=True, sort_keys=False)
 
-        idx = country_count.get(country, 0) + 1
-        country_count[country] = idx
+          print("✔ final.yaml generated (merged proxies, rules, proxy-groups)")
+          EOF
 
-        p["name"] = f"{country}{idx}"
-        proxies.append(p)
+      - name: Run merge script
+        run: python3 merge.py
 
-# ===== Proxy Groups =====
-all_names = [p["name"] for p in proxies]
-
-groups = [
-    {
-        "name": "🚀 节点选择",
-        "type": "select",
-        "proxies": ["⚡ 自动选择", "🌍 全球直连"] + all_names
-    },
-    {
-        "name": "⚡ 自动选择",
-        "type": "url-test",
-        "url": "http://www.gstatic.com/generate_204",
-        "interval": 300,
-        "proxies": all_names
-    },
-    {
-        "name": "🌍 全球直连",
-        "type": "select",
-        "proxies": ["DIRECT"]
-    }
-]
-
-# ===== Rule Providers =====
-rule_providers = {
-    "cn": {
-        "type": "http",
-        "behavior": "domain",
-        "url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cn.txt",
-        "path": "./ruleset/cn.yaml",
-        "interval": 86400
-    },
-    "proxy": {
-        "type": "http",
-        "behavior": "domain",
-        "url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/proxy.txt",
-        "path": "./ruleset/proxy.yaml",
-        "interval": 86400
-    },
-    "direct": {
-        "type": "http",
-        "behavior": "domain",
-        "url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt",
-        "path": "./ruleset/direct.yaml",
-        "interval": 86400
-    }
-}
-
-rules = [
-    "RULE-SET,cn,🌍 全球直连",
-    "RULE-SET,direct,🌍 全球直连",
-    "RULE-SET,proxy,🚀 节点选择",
-    "MATCH,🚀 节点选择"
-]
-
-# ===== Final Config =====
-base_config = {
-    "mixed-port": 7890,
-    "mode": "rule",
-    "log-level": "info",
-    "proxies": proxies,
-    "proxy-groups": groups,
-    "rule-providers": rule_providers,
-    "rules": rules
-}
-
-# ===== Output Files =====
-def save(name, data):
-    with open(name, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, allow_unicode=True, sort_keys=False)
-
-# Full config
-save("sub.yaml", base_config)
-
-# Global Proxy config
-global_cfg = base_config.copy()
-global_cfg["rules"] = ["MATCH,🚀 节点选择"]
-save("sub_global.yaml", global_cfg)
-
-# CN Optimization config
-cn_cfg = base_config.copy()
-cn_cfg["rules"] = [
-    "RULE-SET,cn,🌍 全球直连",
-    "MATCH,🚀 节点选择"
-]
-save("sub_cn.yaml", cn_cfg)
-
-# Game Optimization config
-game_cfg = base_config.copy()
-game_cfg["proxy-groups"][0]["proxies"] = ["⚡ 自动选择"]
-save("sub_game.yaml", game_cfg)
-
-# Base64 Subscription
-with open("sub.yaml", encoding="utf-8") as f:
-    b64 = base64.b64encode(f.read().encode()).decode()
-
-with open("sub.txt", "w") as f:
-    f.write(b64)
-
-print("✅ 规则 + 分流订阅生成完成")
-EOF
-
-      - name: Commit changes
+      - name: Commit & Push
         run: |
-          git config --global user.name "bot"
-          git config --global user.email "bot@users.noreply.github.com"
-          git add .
-          git commit -m "Update airport subscription and rules" || echo "No changes"
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add final.yaml
+          git commit -m "Auto update final.yaml (merged proxies, rules, proxy-groups)" || echo "No changes"
           git push
