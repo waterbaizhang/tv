@@ -1,142 +1,179 @@
-name: Merge Clash Nodes
+name: Clash 节点合并工作流
 
 on:
   schedule:
-    - cron: '0 23 * * *'  # 每天北京时间早7点（UTC时间23点）执行
+    # 每天北京时间早7点执行（UTC时间23点）
+    - cron: '0 23 * * *'
   workflow_dispatch:  # 支持手动触发
 
 jobs:
-  merge-nodes:
+  merge-clash-nodes:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
         with:
-          python-version: '3.x'
+          persist-credentials: false
+          fetch-depth: 0
 
-      - name: Install required Python packages
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安装依赖包
         run: |
-          pip install pyyaml requests geoip2
+          python -m pip install --upgrade pip
+          pip install pyyaml requests maxminddb python-dotenv
 
-      - name: Merge Clash Nodes and Generate final.yaml
+      - name: 下载并解压 GeoLite2 数据库
         run: |
-          # 下载GeoIP数据库，如果没有的话
-          GEOIP_DB_PATH="GeoLite2-Country.mmdb"
-          if [ ! -f "$GEOIP_DB_PATH" ]; then
-            echo "Downloading GeoIP database..."
-            GEOIP_URL="https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb.gz"
-            curl -L -o GeoLite2-Country.mmdb.gz "$GEOIP_URL"
-            gunzip -c GeoLite2-Country.mmdb.gz > "$GEOIP_DB_PATH"
-          fi
+          # 创建 geoip 目录
+          mkdir -p geoip
+          # 下载数据库文件
+          curl -L "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb.gz" -o geoip/GeoLite2-Country.mmdb.gz
+          # 解压
+          gunzip geoip/GeoLite2-Country.mmdb.gz
 
-          # 读取urls.txt中的URLs
-          URLS_FILE="urls.txt"
-          if [ ! -f "$URLS_FILE" ]; then
-            echo "urls.txt file not found!"
-            exit 1
-          fi
-
-          # Python脚本
-          python3 <<'EOF'
-import os
+      - name: 执行节点合并脚本
+        run: |
+          python - <<EOF
 import yaml
 import requests
-import geoip2.database
-from urllib.request import urlopen
-from io import BytesIO
-import gzip
+import maxminddb
+import socket
+import os
+from collections import defaultdict
+from urllib.parse import urlparse
 
-# 设置GeoIP数据库路径
-GEOIP_DB_PATH = "GeoLite2-Country.mmdb"
+# 全局变量
+proxies = []
+server_set = set()
+country_counter = defaultdict(int)
+geoip_db_path = "geoip/GeoLite2-Country.mmdb"
 
-# 解析IP地址为国家名称
-def get_country_from_ip(ip_address):
-    with geoip2.database.Reader(GEOIP_DB_PATH) as reader:
-        try:
-            response = reader.country(ip_address)
-            country_name = response.country.name
-            return country_name
-        except geoip2.errors.AddressNotFoundError:
-            return None
-
-# 读取urls.txt中的URLs
-def read_urls_from_file(file_path):
-    with open(file_path, 'r') as file:
-        return [line.strip() for line in file.readlines() if line.strip()]
-
-# 下载并读取YAML文件
-def download_yaml(url):
+# 初始化 GeoIP 数据库
+def init_geoip():
     try:
-        response = requests.get(url)
-        response.raise_for_status()
-        return yaml.safe_load(response.text)
-    except requests.exceptions.RequestException as e:
-        print(f"Error downloading {url}: {e}")
+        reader = maxminddb.open_database(geoip_db_path)
+        return reader
+    except Exception as e:
+        print(f"GeoIP 数据库加载失败: {e}")
         return None
 
-# 合并Clash配置
-def merge_clash_configs(urls):
-    proxies = []
-    proxy_groups = []
+geoip_reader = init_geoip()
 
+# 获取 IP/域名对应的国家名称
+def get_country_name(server):
+    if not geoip_reader:
+        return "未知"
+    
+    try:
+        # 尝试解析为 IP
+        ip = socket.gethostbyname(server)
+        # 查询 GeoIP
+        response = geoip_reader.get(ip)
+        if response and 'country' in response and 'names' in response['country'] and 'zh-CN' in response['country']['names']:
+            return response['country']['names']['zh-CN']
+        return "未知"
+    except Exception as e:
+        print(f"获取 {server} 国家信息失败: {e}")
+        return "未知"
+
+# 生成唯一的节点名称
+def generate_unique_name(server):
+    country = get_country_name(server)
+    # 计数器自增
+    country_counter[country] += 1
+    # 生成名称（如：美国1、日本2）
+    return f"{country}{country_counter[country]}"
+
+# 下载并解析单个节点链接
+def fetch_and_parse_node(url):
+    try:
+        # 设置超时时间
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        # 确保编码为 UTF-8
+        response.encoding = response.apparent_encoding or 'utf-8'
+        # 解析 YAML
+        node_config = yaml.safe_load(response.text)
+        return node_config
+    except Exception as e:
+        print(f"下载 {url} 失败，跳过: {e}")
+        return None
+
+# 读取 urls.txt 并处理所有节点
+def process_all_nodes():
+    # 检查 urls.txt 是否存在
+    if not os.path.exists("urls.txt"):
+        print("urls.txt 文件不存在")
+        return
+    
+    with open("urls.txt", "r", encoding="utf-8") as f:
+        urls = [line.strip() for line in f if line.strip()]
+    
     for url in urls:
-        data = download_yaml(url)
-        if data is None:
+        node_config = fetch_and_parse_node(url)
+        if not node_config or 'proxies' not in node_config:
             continue
-
-        for proxy in data.get('proxies', []):
-            server = proxy.get('server')
-            if any(p.get('server') == server for p in proxies):
-                continue  # 如果server地址重复，跳过该proxy
-
-            # 解析IP地址并修改name字段
-            country_name = get_country_from_ip(server)
-            if country_name:
-                # 如果同一国家，添加序号
-                country_name_count = sum(1 for p in proxies if p['name'].startswith(country_name))
-                if country_name_count > 0:
-                    country_name += str(country_name_count + 1)
-            else:
-                country_name = "Unknown"
-
-            proxy['name'] = country_name
+        
+        # 处理每个 proxy 节点
+        for proxy in node_config['proxies']:
+            if 'server' not in proxy:
+                continue
+            
+            server = proxy['server']
+            # 去重：server 地址已存在则跳过
+            if server in server_set:
+                print(f"Server {server} 已存在，跳过")
+                continue
+            
+            # 生成新的节点名称
+            proxy['name'] = generate_unique_name(server)
+            # 添加到列表并记录 server
             proxies.append(proxy)
+            server_set.add(server)
+            print(f"成功添加节点: {proxy['name']} ({server})")
 
-        # 合并proxy-groups
-        if 'proxy-groups' in data:
-            proxy_groups = data['proxy-groups']
-
-    # 创建合并后的YAML
+# 构建最终的配置文件
+def build_final_config():
+    # 构建 proxy-groups（保留一个默认组）
+    proxy_groups = [{
+        'name': '自动选择',
+        'type': 'url-test',
+        'proxies': [p['name'] for p in proxies],
+        'url': 'http://www.gstatic.com/generate_204',
+        'interval': 300
+    }]
+    
+    # 最终配置
     final_config = {
         'proxies': proxies,
-        'proxy-groups': proxy_groups
+        'proxy-groups': proxy_groups,
+        # 保留基础配置
+        'rules': [
+            'MATCH,自动选择'
+        ]
     }
+    
+    # 写入 final.yaml
+    with open("final.yaml", "w", encoding="utf-8") as f:
+        yaml.dump(final_config, f, allow_unicode=True, sort_keys=False)
+    
+    print(f"合并完成，共 {len(proxies)} 个节点")
 
-    return final_config
-
-# 将最终配置写入文件
-def write_final_config(config, output_path):
-    with open(output_path, 'w', encoding='utf-8') as f:
-        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
-
-def main():
-    urls = read_urls_from_file('urls.txt')
-    merged_config = merge_clash_configs(urls)
-    write_final_config(merged_config, 'final.yaml')
-    print("final.yaml has been updated.")
-
+# 主执行流程
 if __name__ == "__main__":
-    main()
+    process_all_nodes()
+    build_final_config()
 EOF
 
-      - name: Commit and push final.yaml
-        run: |
-          git config --global user.email "your-email@example.com"
-          git config --global user.name "GitHub Actions"
-          git add final.yaml
-          git commit -m "Update merged clash nodes configuration"
-          git push
+      - name: 提交并推送更改
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+          force: false
+          commit_message: "chore: 自动合并 Clash 节点配置"
+          file_pattern: "final.yaml geoip/GeoLite2-Country.mmdb"
