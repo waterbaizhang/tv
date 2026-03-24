@@ -22,7 +22,7 @@ dns:
     geoip: true
   geodata-mode: true
 proxies:
-- name: 荷兰
+- name: 德国
   server: ip1.758733.xyz
   port: 10088
   type: tuic
@@ -165,7 +165,7 @@ proxies:
   transport: TCP
   username: tcp_3flnfpno
   password: A4Hv3H5yb8meP1MN
-- name: 德国
+- name: 德国 1
   server: 5.178.101.117
   port: 30006
   type: tuic
@@ -212,7 +212,7 @@ proxy-groups:
   url: https://www.gstatic.com/generate_204
   interval: 5
   proxies: &id001
-  - 荷兰
+  - 德国
   - 未知
   - 未知 1
   - 未知 2
@@ -221,7 +221,7 @@ proxy-groups:
   - 美国 1
   - 未知 3
   - 香港
-  - 德国
+  - 德国 1
   - 香港 1
   - 台湾
 - name: 🌍 国外媒体
