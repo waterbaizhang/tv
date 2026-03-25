@@ -176,7 +176,7 @@ jobs:
               },
               'proxies': all_proxies,
               'proxy-groups': proxy_groups,
-              'rules': ['MATCH,Proxy', 'GEOIP,CN,DIRECT'],   # 顺序已调换
+              'rules': ['GEOIP,CN,DIRECT', 'MATCH,🐟 漏网之鱼'],   # 修正：兜底规则指向漏网之鱼组
           }
 
           with open('final.yaml', 'w', encoding='utf-8') as f:
