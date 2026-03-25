@@ -1,0 +1,29 @@
+name: Sync to Private GitLab
+
+# 触发条件：push 到 main 分支、定时同步、手动触发
+on:
+  push:
+    branches: [ main ]  # 可改成你要同步的分支
+  schedule:
+    - cron: '0 */6 * * *'  # 每 6 小时自动同步一次
+  workflow_dispatch:  # 允许手动点击运行
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitHub code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 拉取所有历史，保证完整同步
+
+      - name: Sync to GitLab
+        uses: wearerequired/git-mirror-action@v1
+        env:
+          SSH_PRIVATE_KEY: ''  # 我们用 HTTPS，这里留空
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        with:
+          # 源仓库（GitHub）
+          source-repo: "git@github.com:${{ github.repository }}.git"
+          # 目标仓库（你的私有 GitLab）
+          destination-repo: ${{ secrets.GITLAB_URL }}
