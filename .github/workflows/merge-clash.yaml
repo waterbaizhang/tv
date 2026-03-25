@@ -176,7 +176,7 @@ jobs:
               },
               'proxies': all_proxies,
               'proxy-groups': proxy_groups,
-              'rules': ['GEOIP,CN,DIRECT', 'MATCH,Proxy'],
+              'rules': ['MATCH,Proxy', 'GEOIP,CN,DIRECT'],   # 顺序已调换
           }
 
           with open('final.yaml', 'w', encoding='utf-8') as f:
