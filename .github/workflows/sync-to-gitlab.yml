@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: '0 */6 * * *'
+    cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -20,8 +20,14 @@ jobs:
       - name: Fix git safe directory
         run: git config --global --add safe.directory /github/workspace
 
-      # 直接推送到 GitLab（最稳定）
-      - name: Push to GitLab
-        run: |
-          git remote add gitlab "${{ secrets.GITLAB_URL }}"
-          git push gitlab --all --force --tags
+      # 添加 GitLab 远程仓库
+      - name: Add GitLab remote
+        run: git remote add gitlab "${{ secrets.GITLAB_URL }}"
+
+      # 推送所有分支
+      - name: Push all branches
+        run: git push gitlab --all --force
+
+      # 推送所有标签
+      - name: Push all tags
+        run: git push gitlab --tags --force
