@@ -249,5 +249,5 @@ proxy-groups:
   type: select
   proxies: *id001
 rules:
-- MATCH,Proxy
 - GEOIP,CN,DIRECT
+- MATCH,🐟 漏网之鱼
