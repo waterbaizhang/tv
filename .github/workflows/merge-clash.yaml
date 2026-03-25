@@ -75,14 +75,12 @@ jobs:
           def resolve_host(host):
               """解析主机名，优先返回 IPv6，否则返回 IPv4，若都失败返回 None"""
               try:
-                  # 获取所有地址信息
                   addrs = socket.getaddrinfo(host, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
                   for addr in addrs:
                       family, _, _, _, sockaddr = addr
                       ip = sockaddr[0]
                       if family == socket.AF_INET6:
-                          return ip  # 优先 IPv6
-                  # 如果没有 IPv6，返回第一个 IPv4
+                          return ip
                   for addr in addrs:
                       family, _, _, _, sockaddr = addr
                       if family == socket.AF_INET:
@@ -106,7 +104,6 @@ jobs:
                   return geo_cache[ip]
               
               try:
-                  # ip-api.com 支持 IPv6
                   url = f'http://ip-api.com/json/{ip}?fields=status,country,countryCode'
                   resp = requests.get(url, timeout=5)
                   data = resp.json()
@@ -156,7 +153,7 @@ jobs:
                   seen_servers.add(server)
                   p['name'] = get_country_name(server)
                   all_proxies.append(p)
-                  time.sleep(0.5)  # 控制请求频率
+                  time.sleep(0.5)
 
           # 处理同名加数字后缀
           name_count = {}
@@ -171,6 +168,7 @@ jobs:
           proxy_names = [p['name'] for p in all_proxies]
 
           proxy_groups = [
+              {'name': '手动选择', 'type': 'select', 'proxies': proxy_names},   # 新增手动选择组
               {'name': '♻️ 自动选择', 'type': 'fallback', 'url': 'https://www.gstatic.com/generate_204', 'interval': 5, 'proxies': proxy_names},
               {'name': '🌍 国外媒体', 'type': 'select', 'proxies': proxy_names},
               {'name': '📲 电报信息', 'type': 'select', 'proxies': proxy_names},
@@ -191,7 +189,7 @@ jobs:
               'external-controller': '127.0.0.1:9090',
               'dns': {
                   'enable': True,
-                  'ipv6': True,  # 开启 IPv6
+                  'ipv6': True,
                   'default-nameserver': ['223.5.5.5', '114.114.114.114'],
                   'enhanced-mode': 'fake-ip',
                   'fake-ip-range': '198.18.0.1/16',
