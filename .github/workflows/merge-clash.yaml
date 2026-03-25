@@ -72,25 +72,52 @@ jobs:
 
           geo_cache = {}
 
+          def resolve_host(host):
+              """解析主机名，优先返回 IPv6，否则返回 IPv4，若都失败返回 None"""
+              try:
+                  # 获取所有地址信息
+                  addrs = socket.getaddrinfo(host, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+                  for addr in addrs:
+                      family, _, _, _, sockaddr = addr
+                      ip = sockaddr[0]
+                      if family == socket.AF_INET6:
+                          return ip  # 优先 IPv6
+                  # 如果没有 IPv6，返回第一个 IPv4
+                  for addr in addrs:
+                      family, _, _, _, sockaddr = addr
+                      if family == socket.AF_INET:
+                          return sockaddr[0]
+              except Exception as e:
+                  print(f'DNS resolution failed for {host}: {e}')
+              return None
+
           def get_country_name(host):
-              if not re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', host):
-                  try:
-                      ip = socket.gethostbyname(host)
-                  except Exception:
-                      return '未知'
-              else:
+              # 如果已经是 IP 格式，直接使用
+              if re.match(r'^([0-9a-fA-F:]+)$', host) and ':' in host:
                   ip = host
+              elif re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', host):
+                  ip = host
+              else:
+                  ip = resolve_host(host)
+                  if not ip:
+                      return '未知'
+              
               if ip in geo_cache:
                   return geo_cache[ip]
+              
               try:
-                  resp = requests.get(f'http://ip-api.com/json/{ip}?fields=status,country,countryCode', timeout=5)
+                  # ip-api.com 支持 IPv6
+                  url = f'http://ip-api.com/json/{ip}?fields=status,country,countryCode'
+                  resp = requests.get(url, timeout=5)
                   data = resp.json()
                   if data.get('status') == 'success':
                       cn = COUNTRY_MAP.get(data['country'], COUNTRY_MAP.get(data['countryCode'], data['country']))
                   else:
                       cn = '未知'
-              except Exception:
+              except Exception as e:
+                  print(f'Geo lookup error for {ip}: {e}')
                   cn = '未知'
+              
               geo_cache[ip] = cn
               return cn
 
@@ -129,7 +156,7 @@ jobs:
                   seen_servers.add(server)
                   p['name'] = get_country_name(server)
                   all_proxies.append(p)
-                  time.sleep(0.5)
+                  time.sleep(0.5)  # 控制请求频率
 
           # 处理同名加数字后缀
           name_count = {}
@@ -143,7 +170,6 @@ jobs:
 
           proxy_names = [p['name'] for p in all_proxies]
 
-          # 完整的 proxy-groups 结构（兼容 Clash/mihomo）
           proxy_groups = [
               {'name': '♻️ 自动选择', 'type': 'fallback', 'url': 'https://www.gstatic.com/generate_204', 'interval': 5, 'proxies': proxy_names},
               {'name': '🌍 国外媒体', 'type': 'select', 'proxies': proxy_names},
@@ -165,7 +191,7 @@ jobs:
               'external-controller': '127.0.0.1:9090',
               'dns': {
                   'enable': True,
-                  'ipv6': False,
+                  'ipv6': True,  # 开启 IPv6
                   'default-nameserver': ['223.5.5.5', '114.114.114.114'],
                   'enhanced-mode': 'fake-ip',
                   'fake-ip-range': '198.18.0.1/16',
@@ -176,7 +202,7 @@ jobs:
               },
               'proxies': all_proxies,
               'proxy-groups': proxy_groups,
-              'rules': ['GEOIP,CN,DIRECT', 'MATCH,🐟 漏网之鱼'],   # 修正：兜底规则指向漏网之鱼组
+              'rules': ['GEOIP,CN,DIRECT', 'MATCH,🐟 漏网之鱼'],
           }
 
           with open('final.yaml', 'w', encoding='utf-8') as f:
