@@ -1,30 +1,23 @@
-name: Sync to Private GitLab
+name: Sync to GitLab (HTTPS 100% 稳定版)
 
 on:
   push:
-    branches: [ main ]
-  schedule:
-    - cron: '0 */6 * * *'
+    branches: [ '*' ]
+    tags: [ '*' ]
   workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          
+      - run: git config --global --add safe.directory /github/workspace
 
-      # 修复 git 安全权限问题
-      - name: Fix git safe.directory
-        run: git config --global --add safe.directory /github/workspace
-
-      # 原生 git 同步（最稳定，不依赖第三方 action）
       - name: Push to GitLab
         run: |
-          git remote add gitlab "${{ secrets.GITLAB_URL }}"
-          git push gitlab --all --force --tags
-        env:
-          GIT_USERNAME: "oauth2"
-          GIT_PASSWORD: "${{ secrets.GITLAB_TOKEN }}"
+          git push \
+            "https://oauth2:${{ secrets.GITLAB_TOKEN }}@${{ secrets.GITLAB_HOST }}/${{ secrets.GITLAB_PROJECT }}.git" \
+            --all --force --tags
