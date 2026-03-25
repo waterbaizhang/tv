@@ -6,7 +6,7 @@ log-level: info
 external-controller: 127.0.0.1:9090
 dns:
   enable: true
-  ipv6: false
+  ipv6: true
   default-nameserver:
   - 223.5.5.5
   - 114.114.114.114
@@ -22,7 +22,7 @@ dns:
     geoip: true
   geodata-mode: true
 proxies:
-- name: 荷兰
+- name: 德国
   server: ip1.758733.xyz
   port: 10088
   type: tuic
@@ -35,7 +35,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: 未知
+- name: 法国
   type: vless
   server: 2001:bc8:32d7:181::3
   port: 17401
@@ -59,7 +59,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: 未知 1
+- name: 法国 1
   type: vless
   server: 2001:bc8:32d7:181::4
   port: 17401
@@ -83,7 +83,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: 未知 2
+- name: 法国 2
   type: vless
   server: 2001:bc8:32d7:181::5
   port: 17401
@@ -107,7 +107,7 @@ proxies:
       enabled: true
       up: 50
       down: 100
-- name: 法国
+- name: 法国 3
   server: 163.172.116.154
   port: 33887
   type: tuic
@@ -146,7 +146,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: 未知 3
+- name: 德国 1
   type: hysteria
   server: 2a14:7584:d097::a
   port: 54177
@@ -165,7 +165,7 @@ proxies:
   transport: TCP
   username: tcp_3flnfpno
   password: A4Hv3H5yb8meP1MN
-- name: 德国
+- name: 德国 2
   server: 5.178.101.117
   port: 30006
   type: tuic
@@ -212,16 +212,16 @@ proxy-groups:
   url: https://www.gstatic.com/generate_204
   interval: 5
   proxies: &id001
-  - 荷兰
-  - 未知
-  - 未知 1
-  - 未知 2
+  - 德国
   - 法国
+  - 法国 1
+  - 法国 2
+  - 法国 3
   - 美国
   - 美国 1
-  - 未知 3
+  - 德国 1
   - 香港
-  - 德国
+  - 德国 2
   - 香港 1
   - 台湾
 - name: 🌍 国外媒体
