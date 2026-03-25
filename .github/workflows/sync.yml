@@ -2,7 +2,7 @@ name: Sync to GitLab
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -21,9 +21,10 @@ jobs:
 
       - name: Add GitLab remote
         run: |
-          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/your-group/your-repo.git
+          # 关键：将 token 嵌入 URL，使用 oauth2 作为用户名（或 gitlab-ci-token）
+          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/a80815213/water.git
 
       - name: Push to GitLab
         run: |
           git push gitlab --all --force
-          git push gitlab --tags --force   # 单独推送标签，或者使用 --mirror 一次性推送所有内容
+          git push gitlab --tags --force
