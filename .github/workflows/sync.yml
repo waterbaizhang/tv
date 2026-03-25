@@ -2,10 +2,8 @@ name: Sync to GitLab
 
 on:
   push:
-    branches: [ "main", "master" ]  # 可调整为需要同步的分支
-  schedule:
-    - cron: '0 */6 * * *'            # 可选：每6小时定时同步
-workflow_dispatch:                  # 支持手动触发
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -14,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0             # 拉取所有分支和标签
+          fetch-depth: 0
 
       - name: Configure Git
         run: |
@@ -23,9 +21,9 @@ jobs:
 
       - name: Add GitLab remote
         run: |
-          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.example.com/your-group/your-repo.git
-          # 如果使用 SSH，则使用 git@gitlab.example.com:your-group/your-repo.git
+          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/your-group/your-repo.git
 
       - name: Push to GitLab
         run: |
-          git push gitlab --mirror --force   # --mirror 会推送所有引用（分支、标签），--force 覆盖 GitLab 上的内容
+          git push gitlab --all --force
+          git push gitlab --tags --force   # 单独推送标签，或者使用 --mirror 一次性推送所有内容
