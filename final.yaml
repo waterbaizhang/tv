@@ -22,7 +22,7 @@ dns:
     geoip: true
   geodata-mode: true
 proxies:
-- name: 荷兰
+- name: 德国
   server: ip1.758733.xyz
   port: 10088
   type: tuic
@@ -74,7 +74,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: 德国
+- name: 德国 1
   type: hysteria
   server: 2a14:7584:d097::a
   port: 54177
@@ -93,7 +93,7 @@ proxies:
   transport: TCP
   username: tcp_3flnfpno
   password: A4Hv3H5yb8meP1MN
-- name: 德国 1
+- name: 德国 2
   server: 5.178.101.117
   port: 30006
   type: tuic
@@ -138,13 +138,13 @@ proxy-groups:
 - name: 手动选择
   type: select
   proxies: &id001
-  - 荷兰
+  - 德国
   - 法国
   - 美国
   - 美国 1
-  - 德国
-  - 香港
   - 德国 1
+  - 香港
+  - 德国 2
   - 香港 1
   - 台湾
 - name: ♻️ 自动选择
