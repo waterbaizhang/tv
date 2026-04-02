@@ -61,12 +61,12 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: 美国 1
-  server: 157.254.223.48
-  port: 11540
+- name: 德国 1
+  server: 5.178.101.117
+  port: 30006
   type: tuic
-  uuid: 6845cb43-4b8d-49e8-a011-1051d6c4d2ae
-  password: 6845cb43-4b8d-49e8-a011-1051d6c4d2ae
+  uuid: 36106e0f-4d9a-470b-a3fd-535f3b7a1e92
+  password: dongtaiwang.com
   sni: www.microsoft.com
   alpn:
   - h3
@@ -74,7 +74,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: 德国 1
+- name: 德国 2
   type: hysteria
   server: 2a14:7584:d097::a
   port: 54177
@@ -93,19 +93,6 @@ proxies:
   transport: TCP
   username: tcp_3flnfpno
   password: A4Hv3H5yb8meP1MN
-- name: 德国 2
-  server: 5.178.101.117
-  port: 30006
-  type: tuic
-  uuid: 36106e0f-4d9a-470b-a3fd-535f3b7a1e92
-  password: dongtaiwang.com
-  sni: www.microsoft.com
-  alpn:
-  - h3
-  request-timeout: 8000
-  udp-relay-mode: native
-  skip-cert-verify: true
-  congestion-controller: bbr
 - name: 香港 1
   type: anytls
   server: 151.242.183.75
@@ -141,10 +128,9 @@ proxy-groups:
   - 德国
   - 法国
   - 美国
-  - 美国 1
   - 德国 1
-  - 香港
   - 德国 2
+  - 香港
   - 香港 1
   - 台湾
 - name: ♻️ 自动选择
