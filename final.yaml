@@ -22,7 +22,7 @@ dns:
     geoip: true
   geodata-mode: true
 proxies:
-- name: 德国
+- name: 荷兰
   server: ip1.758733.xyz
   port: 10088
   type: tuic
@@ -48,12 +48,12 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: 美国
-  server: 157.254.223.24
-  port: 41122
+- name: 德国
+  server: 178.18.147.199
+  port: 42487
   type: tuic
-  uuid: 2aec7bfd-4178-4ee5-9bc5-fe4c241fdc15
-  password: 2aec7bfd-4178-4ee5-9bc5-fe4c241fdc15
+  uuid: b35b50d1-7830-4a68-94db-349c2d2f8e43
+  password: b35b50d1-7830-4a68-94db-349c2d2f8e43
   sni: www.microsoft.com
   alpn:
   - h3
@@ -125,9 +125,9 @@ proxy-groups:
 - name: 手动选择
   type: select
   proxies: &id001
-  - 德国
+  - 荷兰
   - 法国
-  - 美国
+  - 德国
   - 德国 1
   - 德国 2
   - 香港
