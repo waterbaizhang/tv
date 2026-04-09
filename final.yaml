@@ -22,7 +22,7 @@ dns:
     geoip: true
   geodata-mode: true
 proxies:
-- name: 荷兰
+- name: 法国
   server: ip1.758733.xyz
   port: 10088
   type: tuic
@@ -35,7 +35,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: 法国
+- name: 法国 1
   server: 163.172.116.154
   port: 33887
   type: tuic
@@ -131,8 +131,8 @@ proxy-groups:
 - name: 手动选择
   type: select
   proxies: &id001
-  - 荷兰
   - 法国
+  - 法国 1
   - 德国
   - 德国 1
   - 德国 2
