@@ -86,23 +86,10 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: 香港
-  server: 151.242.183.103
-  port: 11882
-  type: tuic
-  uuid: e473c549-4737-4236-8f6b-6840fd22a9d9
-  password: dongtaiwang.com
-  sni: www.microsoft.com
-  alpn:
-  - h3
-  request-timeout: 8000
-  udp-relay-mode: native
-  skip-cert-verify: true
-  congestion-controller: bbr
-- name: 香港 1
+- name: 台湾
   type: anytls
-  server: 151.242.183.75
-  port: 33333
+  server: 45.221.98.11
+  port: 11777
   password: dongtaiwang.com
   client-fingerprint: chrome
   udp: true
@@ -113,7 +100,20 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: 台湾
+- name: 德国 3
+  server: 83.243.86.109
+  port: 27947
+  type: tuic
+  uuid: 261d95d4-73c0-4c33-957a-04b6d407bea2
+  password: 261d95d4-73c0-4c33-957a-04b6d407bea2
+  sni: bing.com
+  alpn:
+  - h3
+  request-timeout: 8000
+  udp-relay-mode: native
+  skip-cert-verify: true
+  congestion-controller: bbr
+- name: 台湾 1
   type: anytls
   server: fan2.856098.xyz
   port: 8443
@@ -136,9 +136,9 @@ proxy-groups:
   - 德国
   - 德国 1
   - 德国 2
-  - 香港
-  - 香港 1
   - 台湾
+  - 德国 3
+  - 台湾 1
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
