@@ -49,19 +49,6 @@ proxies:
   skip-cert-verify: true
   congestion-controller: bbr
 - name: 德国
-  server: 178.18.147.199
-  port: 42487
-  type: tuic
-  uuid: b35b50d1-7830-4a68-94db-349c2d2f8e43
-  password: b35b50d1-7830-4a68-94db-349c2d2f8e43
-  sni: www.microsoft.com
-  alpn:
-  - h3
-  request-timeout: 8000
-  udp-relay-mode: native
-  skip-cert-verify: true
-  congestion-controller: bbr
-- name: 德国 1
   server: 5.178.101.117
   port: 30006
   type: tuic
@@ -74,7 +61,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: 德国 2
+- name: 德国 1
   type: hysteria
   server: 2a14:7584:d097::a
   port: 54177
@@ -100,7 +87,7 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: 德国 3
+- name: 德国 2
   server: 83.243.86.109
   port: 27947
   type: tuic
@@ -135,9 +122,8 @@ proxy-groups:
   - 法国 1
   - 德国
   - 德国 1
-  - 德国 2
   - 台湾
-  - 德国 3
+  - 德国 2
   - 台湾 1
 - name: ♻️ 自动选择
   type: fallback
