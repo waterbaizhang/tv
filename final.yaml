@@ -36,18 +36,17 @@ proxies:
   skip-cert-verify: true
   congestion-controller: bbr
 - name: 法国 1
-  server: 163.172.116.154
-  port: 33887
-  type: tuic
-  uuid: 9adb384a-0f16-4501-a8f3-b6b2556fce87
-  password: dongtaiwang.com
+  type: hysteria
+  server: 163.172.117.163
+  port: 36699
+  auth-str: dongtaiwang.com
   sni: bing.com
+  skip-cert-verify: true
   alpn:
   - h3
-  request-timeout: 8000
-  udp-relay-mode: native
-  skip-cert-verify: true
-  congestion-controller: bbr
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
 - name: 德国
   server: 5.178.101.117
   port: 30006
@@ -87,6 +86,19 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
+- name: 法国 2
+  server: 62.210.24.143
+  port: 33888
+  type: tuic
+  uuid: 9adb384a-0f16-4501-a8f3-b6b2556fce87
+  password: dongtaiwang.com
+  sni: bing.com
+  alpn:
+  - h3
+  request-timeout: 8000
+  udp-relay-mode: native
+  skip-cert-verify: true
+  congestion-controller: bbr
 - name: 德国 2
   server: 83.243.86.109
   port: 27947
@@ -123,6 +135,7 @@ proxy-groups:
   - 德国
   - 德国 1
   - 台湾
+  - 法国 2
   - 德国 2
   - 台湾 1
 - name: ♻️ 自动选择
