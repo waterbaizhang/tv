@@ -68,10 +68,10 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: 台湾
+- name: 英国
   type: anytls
-  server: 45.221.98.11
-  port: 11777
+  server: 156.225.88.93
+  port: 23778
   password: dongtaiwang.com
   client-fingerprint: chrome
   udp: true
@@ -108,7 +108,7 @@ proxies:
   udp-relay-mode: native
   skip-cert-verify: true
   congestion-controller: bbr
-- name: 台湾 1
+- name: 台湾
   type: anytls
   server: fan2.856098.xyz
   port: 8443
@@ -130,10 +130,10 @@ proxy-groups:
   - 法国 1
   - 德国
   - 德国 1
-  - 台湾
+  - 英国
   - 法国 2
   - 德国 2
-  - 台湾 1
+  - 台湾
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
