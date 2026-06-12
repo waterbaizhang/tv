@@ -68,7 +68,7 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: 英国
+- name: 美国
   type: anytls
   server: 156.225.88.93
   port: 23778
@@ -130,7 +130,7 @@ proxy-groups:
   - 法国 1
   - 德国
   - 德国 1
-  - 英国
+  - 美国
   - 法国 2
   - 德国 2
   - 台湾
