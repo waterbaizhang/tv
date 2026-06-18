@@ -82,19 +82,15 @@ proxies:
   - h2
   - http/1.1
   skip-cert-verify: true
-- name: 法国 2
-  server: 62.210.24.143
-  port: 33888
-  type: tuic
-  uuid: 9adb384a-0f16-4501-a8f3-b6b2556fce87
+- name: 美国 1
+  type: hysteria2
+  server: hy2.561891.xyz
+  port: 44356
   password: dongtaiwang.com
-  sni: bing.com
-  alpn:
-  - h3
-  request-timeout: 8000
-  udp-relay-mode: native
-  skip-cert-verify: true
-  congestion-controller: bbr
+  up: 11 Mbps
+  down: 55 Mbps
+  skip-cert-verify: false
+  sni: hy2.561891.xyz
 - name: 德国 2
   server: 83.243.86.109
   port: 27947
@@ -131,7 +127,7 @@ proxy-groups:
   - 德国
   - 德国 1
   - 美国
-  - 法国 2
+  - 美国 1
   - 德国 2
   - 台湾
 - name: ♻️ 自动选择
