@@ -22,25 +22,11 @@ dns:
     geoip: true
   geodata-mode: true
 proxies:
-- name: 美国
-  type: anytls
-  server: 198.200.57.154
-  port: 22556
-  password: github.com/Alvin9999-newpac/fanqiang
-  udp: true
-  idle-session-check-interval: 30
-  idle-session-timeout: 30
-  min-idle-session: 5
-  sni: bing.com
-  alpn:
-  - h2
-  - http/1.1
-  skip-cert-verify: true
 - name: 法国
   type: hysteria
-  server: 163.172.117.163
-  port: 36699
-  auth-str: dongtaiwang.com
+  server: 62.210.70.191
+  port: 23556
+  auth-str: github.com/Alvin9999-newpac/fanqiang
   sni: bing.com
   skip-cert-verify: true
   alpn:
@@ -50,9 +36,9 @@ proxies:
   down: 55 Mbps
 - name: 法国 1
   type: hysteria
-  server: 62.210.70.191
-  port: 23556
-  auth-str: github.com/Alvin9999-newpac/fanqiang
+  server: 163.172.117.163
+  port: 36699
+  auth-str: dongtaiwang.com
   sni: bing.com
   skip-cert-verify: true
   alpn:
@@ -72,13 +58,13 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: 美国 1
+- name: 美国
   type: anytls
   server: anytls.864106.xyz
   port: 18001
   password: fanvpn.net
   sni: anytls.864106.xyz
-- name: 美国 2
+- name: 美国 1
   type: hysteria2
   server: hy2.561891.xyz
   port: 44356
@@ -118,12 +104,11 @@ proxy-groups:
 - name: 手动选择
   type: select
   proxies: &id001
-  - 美国
   - 法国
   - 法国 1
   - 德国
+  - 美国
   - 美国 1
-  - 美国 2
   - 德国 1
   - 台湾
 - name: ♻️ 自动选择
