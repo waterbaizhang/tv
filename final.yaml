@@ -98,72 +98,98 @@ proxy-groups:
   - 德国节点
   - 台湾节点
   - 美国节点
+  use: []
 - name: ♻️ 自动选择
   type: fallback
   url: https://www.gstatic.com/generate_204
   interval: 5
-  proxies: []
+  proxies:
+  - 法国
+  - 法国 2
+  use: []
 - name: 🌍 国外媒体
   type: select
   proxies:
   - 🚀 节点选择
   - ♻️ 自动选择
   - 🎯 全球直连
+  - 法国
+  - 法国 2
+  use: []
 - name: 📲 电报信息
   type: select
   proxies:
   - 🚀 节点选择
   - 🎯 全球直连
+  - 法国
+  - 法国 2
+  use: []
 - name: Ⓜ️ 微软服务
   type: select
   proxies:
   - 🎯 全球直连
   - 🚀 节点选择
+  - 法国
+  - 法国 2
+  use: []
 - name: 🍎 苹果服务
   type: select
   proxies:
   - 🚀 节点选择
   - 🎯 全球直连
+  - 法国
+  - 法国 2
+  use: []
 - name: 🎯 全球直连
   type: select
   proxies:
   - DIRECT
   - 🚀 节点选择
   - ♻️ 自动选择
+  use: []
 - name: 🛑 全球拦截
   type: select
   proxies:
   - REJECT
   - DIRECT
+  use: []
 - name: 🍃 应用净化
   type: select
   proxies:
   - REJECT
   - DIRECT
+  use: []
 - name: 🐟 漏网之鱼
   type: select
   proxies:
   - 🚀 节点选择
   - 🎯 全球直连
   - ♻️ 自动选择
+  - 法国
+  - 法国 2
+  use: []
 - name: 法国节点
   type: select
   proxies:
   - 法国
   - 法国 2
+  use: []
 - name: 德国节点
   type: select
   proxies:
   - 德国
+  use: []
 - name: 台湾节点
   type: select
   proxies:
   - 台湾
+  use: []
 - name: 美国节点
   type: select
   proxies:
   - 美国
   - 美国 2
+  use: []
 rules:
 - GEOIP,CN,DIRECT
 - GEOSITE,CN,DIRECT
