@@ -101,10 +101,6 @@ proxy-groups:
   proxies:
   - 法国
   - 法国2
-  - 德国
-  - 台湾
-  - 美国
-  - 美国2
 - name: 🌍 国外媒体
   type: select
   proxies:
@@ -113,10 +109,6 @@ proxy-groups:
   - 🎯 全球直连
   - 法国
   - 法国2
-  - 德国
-  - 台湾
-  - 美国
-  - 美国2
 - name: 📲 电报信息
   type: select
   proxies:
@@ -124,10 +116,6 @@ proxy-groups:
   - 🎯 全球直连
   - 法国
   - 法国2
-  - 德国
-  - 台湾
-  - 美国
-  - 美国2
 - name: Ⓜ️ 微软服务
   type: select
   proxies:
@@ -135,10 +123,6 @@ proxy-groups:
   - 🚀 节点选择
   - 法国
   - 法国2
-  - 德国
-  - 台湾
-  - 美国
-  - 美国2
 - name: 🍎 苹果服务
   type: select
   proxies:
@@ -146,44 +130,22 @@ proxy-groups:
   - 🎯 全球直连
   - 法国
   - 法国2
-  - 德国
-  - 台湾
-  - 美国
-  - 美国2
 - name: 🎯 全球直连
   type: select
   proxies:
   - DIRECT
   - 🚀 节点选择
   - ♻️ 自动选择
-  - 法国
-  - 法国2
-  - 德国
-  - 台湾
-  - 美国
-  - 美国2
 - name: 🛑 全球拦截
   type: select
   proxies:
   - REJECT
   - DIRECT
-  - 法国
-  - 法国2
-  - 德国
-  - 台湾
-  - 美国
-  - 美国2
 - name: 🍃 应用净化
   type: select
   proxies:
   - REJECT
   - DIRECT
-  - 法国
-  - 法国2
-  - 德国
-  - 台湾
-  - 美国
-  - 美国2
 - name: 🐟 漏网之鱼
   type: select
   proxies:
@@ -192,12 +154,18 @@ proxy-groups:
   - ♻️ 自动选择
   - 法国
   - 法国2
-  - 德国
-  - 台湾
-  - 美国
-  - 美国2
+- name: 🌐 直连优先
+  type: fallback
+  proxies:
+  - DIRECT
+  - 🚀 节点选择
+  url: https://www.gstatic.com/generate_204
+  interval: 300
+  timeout: 5000
 rules:
-- MATCH,🚀 节点选择
+- GEOIP,CN,DIRECT
+- GEOSITE,CN,DIRECT
+- MATCH,🌐 直连优先
 geodata-mode: true
 geo-auto-update: true
 geo-update-interval: 24
@@ -205,4 +173,3 @@ geox-url:
   geoip: https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat
   geosite: https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
   mmdb: https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb
-  asn: https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb
