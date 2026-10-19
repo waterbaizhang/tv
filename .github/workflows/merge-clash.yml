@@ -1,5 +1,4 @@
-```yaml
-name: Merge Clash Mihoo
+name: Merge Clash mihoo
 
 on:
   workflow_dispatch:
