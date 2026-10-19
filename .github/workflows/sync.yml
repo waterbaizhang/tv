@@ -1,30 +1,66 @@
-name: Sync to GitLab
+```yaml
+name: Sync final.yaml to GitLab
 
 on:
   push:
     branches: [ main, master ]
+    paths:
+      - final.yaml
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
+      - name: Check final.yaml
+        run: |
+          test -f final.yaml || {
+            echo "Error: final.yaml not found"
+            exit 1
+          }
 
       - name: Configure Git
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
 
-      - name: Add GitLab remote
+      - name: Clone GitLab and update final.yaml
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         run: |
-          # 关键：将 token 嵌入 URL，使用 oauth2 作为用户名（或 gitlab-ci-token）
-          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/a80815213/water.git
+          set -e
 
-      - name: Push to GitLab
-        run: |
-          git push gitlab --all --force
-          git push gitlab --tags --force
+          # Clone the target GitLab branch
+          git clone \
+            --single-branch \
+            --branch main \
+            "https://oauth2:${GITLAB_TOKEN}@gitlab.com/a80815213/water.git" \
+            gitlab-repo
+
+          # Copy only final.yaml
+          cp final.yaml gitlab-repo/final.yaml
+
+          cd gitlab-repo
+
+          # Stage only final.yaml
+          git add -- final.yaml
+
+          # Skip commit if unchanged
+          if git diff --cached --quiet; then
+            echo "final.yaml unchanged; skipping push."
+            exit 0
+          fi
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git commit -m "Update final.yaml from GitHub"
+          git push origin HEAD:main
+```
