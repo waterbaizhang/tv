@@ -1,4 +1,5 @@
-name: Merge Clash mihoo
+
+name: Merge Clash Subscriptions
 
 on:
   workflow_dispatch:
