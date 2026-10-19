@@ -3,8 +3,7 @@ name: Merge Clash and Mihomo Configs
 
 on:
   schedule:
-    # 北京时间每天 07:00（UTC 前一天 23:00）
-    - cron: "0 23 * * *"
+    - cron: "0 23 * * *" # 北京时间每天 07:00
   workflow_dispatch:
 
 permissions:
@@ -23,7 +22,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
           fetch-depth: 0
 
       - name: Setup Python
@@ -34,572 +32,443 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check PyYAML requests
 
-      - name: Merge online YAML configurations
+      - name: Download and merge configurations
         env:
           PYTHONUTF8: "1"
           PYTHONIOENCODING: utf-8
         run: |
           python <<'PY'
-          import os
-          import re
-          import sys
-          import json
-          import time
-          import socket
-          import shutil
-          import subprocess
-          import ipaddress
+          import os, sys, re, time, socket, subprocess, ipaddress
           from collections import Counter
-          from urllib.parse import urlparse, urlunparse, quote
+          from urllib.parse import urlparse, quote
+          import requests, yaml
 
-          import requests
-          import yaml
-
-          INPUT_FILE = "urls.txt"
-          OUTPUT_FILE = "final.yaml"
+          INPUT = "urls.txt"
+          OUTPUT = "final.yaml"
+          DIRECT_GROUP = "🌐 直连优先"
+          SELECT_GROUP = "🚀 节点选择"
+          GEO_RULES = ["GEOIP,CN,DIRECT", "GEOSITE,CN,DIRECT"]
 
           session = requests.Session()
           session.headers.update({
-              "User-Agent": "Mozilla/5.0 (compatible; ClashConfigMerger/1.0)",
-              "Accept": "application/yaml, text/yaml, text/plain, "
-                        "application/json, */*",
+              "User-Agent": "Mozilla/5.0 ClashConfigMerger/2.0",
+              "Accept": "*/*"
           })
+          geo_cache = {}
 
-          def log(message):
-              print(message, flush=True)
+          def log(s):
+              print(s, flush=True)
 
-          def unique_list(items):
-              """按内容去重，保留第一次出现的顺序。"""
-              result = []
-              seen = set()
-              for item in items:
-                  key = yaml.safe_dump(
-                      item, allow_unicode=True, sort_keys=True
-                  )
+          def unique(items):
+              result, seen = [], set()
+              for x in items:
+                  key = yaml.safe_dump(x, allow_unicode=True, sort_keys=True)
                   if key not in seen:
                       seen.add(key)
-                      result.append(item)
+                      result.append(x)
               return result
 
-          def merge_dicts(left, right):
-              """递归合并配置，字典递归合并，列表合并去重。"""
-              if not isinstance(left, dict) or not isinstance(right, dict):
-                  return right
+          def merge_dict(a, b):
+              out = dict(a)
+              for k, v in b.items():
+                  if k not in out:
+                      out[k] = v
+                  elif isinstance(out[k], dict) and isinstance(v, dict):
+                      out[k] = merge_dict(out[k], v)
+                  elif isinstance(out[k], list) and isinstance(v, list):
+                      out[k] = unique(out[k] + v)
+                  # 普通字段冲突时保留第一个来源
+              return out
 
-              result = dict(left)
-              for key, value in right.items():
-                  if key not in result:
-                      result[key] = value
-                  elif isinstance(result[key], dict) and isinstance(value, dict):
-                      result[key] = merge_dicts(result[key], value)
-                  elif isinstance(result[key], list) and isinstance(value, list):
-                      result[key] = unique_list(result[key] + value)
-                  else:
-                      # 同名普通字段以第一个来源为准，避免后续覆盖。
-                      pass
-              return result
-
-          def get_urls():
-              if not os.path.isfile(INPUT_FILE):
-                  raise RuntimeError("仓库根目录不存在 urls.txt")
-
-              urls = []
-              with open(INPUT_FILE, "r", encoding="utf-8-sig") as f:
-                  for line in f:
-                      line = line.strip()
-                      if not line or line.startswith("#"):
-                          continue
-                      if line.startswith(("http://", "https://")):
-                          urls.append(line)
-
+          def load_urls():
+              if not os.path.isfile(INPUT):
+                  raise RuntimeError("仓库根目录缺少 urls.txt")
+              with open(INPUT, encoding="utf-8-sig") as f:
+                  urls = [
+                      line.strip() for line in f
+                      if line.strip()
+                      and not line.strip().startswith("#")
+                      and line.strip().startswith(("http://", "https://"))
+                  ]
+              urls = unique(urls)
               if not urls:
-                  raise RuntimeError("urls.txt 中没有有效的 HTTP/HTTPS 地址")
+                  raise RuntimeError("urls.txt 没有有效的在线地址")
+              return urls
 
-              return unique_list(urls)
-
-          def download_with_fallback(url):
-              """
-              按多种方式读取在线 YAML：
-              1. requests 常规请求；
-              2. requests 不校验证书的备用请求；
-              3. curl；
-              4. wget。
-              任何方式成功返回文本，否则返回 None。
-              """
+          def download(url):
               candidates = [url]
+              p = urlparse(url)
+              if p.netloc.lower() == "github.com":
+                  parts = p.path.strip("/").split("/")
+                  if len(parts) >= 5 and parts[2] == "blob":
+                      candidates.append(
+                          "https://raw.githubusercontent.com/"
+                          + "/".join(parts[:2] + parts[3:])
+                      )
 
-              # GitHub 常见原始文件链接的备用形式
-              try:
-                  p = urlparse(url)
-                  if p.netloc.lower() == "github.com":
-                      parts = p.path.strip("/").split("/")
-                      if len(parts) >= 5 and parts[2] in (
-                          "blob", "raw"
-                      ):
-                          raw_path = "/".join(parts[:2] + parts[3:])
-                          candidates.append(
-                              "https://raw.githubusercontent.com/" + raw_path
-                          )
-              except Exception:
-                  pass
-
-              for candidate in unique_list(candidates):
+              for u in unique(candidates):
                   for verify in (True, False):
                       try:
-                          response = session.get(
-                              candidate,
-                              timeout=(10, 35),
-                              allow_redirects=True,
-                              verify=verify,
+                          r = session.get(
+                              u, timeout=(10, 30), allow_redirects=True,
+                              verify=verify
                           )
-                          if response.status_code == 200 and response.text.strip():
-                              text = response.content.decode("utf-8-sig", errors="strict")
-                              if text.strip():
-                                  log(f"下载成功：{candidate}")
-                                  return text
+                          if r.ok and r.content.strip():
+                              return r.content.decode("utf-8-sig")
                       except Exception as e:
-                          log(f"requests 读取失败：{str(e)[:180]}")
+                          log(f"HTTP 读取失败：{str(e)[:120]}")
 
-              if shutil.which("curl"):
-                  for candidate in candidates:
+              for tool in ("curl", "wget"):
+                  if not shutil_which(tool):
+                      continue
+                  for u in candidates:
                       try:
-                          result = subprocess.run(
-                              [
-                                  "curl", "-fsSL", "--max-time", "35",
-                                  "--retry", "1", candidate
-                              ],
-                              capture_output=True,
-                              timeout=45,
+                          cmd = (
+                              ["curl", "-fsSL", "--max-time", "35", u]
+                              if tool == "curl"
+                              else ["wget", "-q", "-T", "35", "-O", "-", u]
                           )
-                          if result.returncode == 0 and result.stdout.strip():
-                              text = result.stdout.decode("utf-8-sig", errors="strict")
-                              log(f"curl 读取成功：{candidate}")
-                              return text
-                      except Exception as e:
-                          log(f"curl 读取失败：{str(e)[:180]}")
-
-              if shutil.which("wget"):
-                  for candidate in candidates:
-                      try:
-                          result = subprocess.run(
-                              [
-                                  "wget", "-q", "-T", "35", "-O", "-",
-                                  candidate
-                              ],
-                              capture_output=True,
-                              timeout=45,
+                          r = subprocess.run(
+                              cmd, capture_output=True, timeout=45
                           )
-                          if result.returncode == 0 and result.stdout.strip():
-                              text = result.stdout.decode("utf-8-sig", errors="strict")
-                              log(f"wget 读取成功：{candidate}")
-                              return text
+                          if r.returncode == 0 and r.stdout.strip():
+                              return r.stdout.decode("utf-8-sig")
                       except Exception as e:
-                          log(f"wget 读取失败：{str(e)[:180]}")
-
-              log(f"所有下载方式均失败，跳过：{url}")
+                          log(f"{tool} 读取失败：{str(e)[:100]}")
+              log(f"跳过下载失败的来源：{url}")
               return None
 
-          def parse_yaml(text, url):
-              """
-              解析 YAML。
-              若内容包含多份 YAML 文档，逐份读取并合并。
-              JSON 格式也可作为 YAML 解析。
-              """
+          def shutil_which(name):
+              from shutil import which
+              return which(name) is not None
+
+          def parse_config(text, url):
               try:
                   docs = list(yaml.safe_load_all(text))
                   docs = [d for d in docs if isinstance(d, dict)]
                   if docs:
-                      merged = {}
-                      for doc in docs:
-                          merged = merge_dicts(merged, doc)
-                      return merged
+                      result = {}
+                      for d in docs:
+                          result = merge_dict(result, d)
+                      return result
               except yaml.YAMLError as e:
-                  log(f"YAML 标准解析失败：{url}: {str(e)[:200]}")
+                  log(f"YAML 解析失败：{url}：{str(e)[:150]}")
 
-              # 部分订阅接口可能在 YAML 前后附带提示文本。
-              # 尝试从第一个可能的配置键开始截取。
+              # 兼容文件前带有说明文字的订阅
               lines = text.splitlines()
               for i, line in enumerate(lines):
-                  if re.match(
-                      r"^(proxies|proxy-groups|rules|mixed-port|"
-                      r"port|socks-port|redir-port|allow-lan|"
-                      r"mode|log-level|dns|tun|profile|"
-                      r"rule-providers|proxy-providers)\s*:",
-                      line
-                  ):
+                  if re.match(r"^(proxies|proxy-groups|rules|port|mixed-port|dns|mode)\s*:", line):
                       try:
-                          obj = yaml.safe_load("\n".join(lines[i:]))
-                          if isinstance(obj, dict):
-                              log(f"截取配置后解析成功：{url}")
-                              return obj
+                          d = yaml.safe_load("\n".join(lines[i:]))
+                          if isinstance(d, dict):
+                              return d
                       except yaml.YAMLError:
                           continue
-
-              log(f"无法解析该配置，跳过：{url}")
+              log(f"跳过无法解析的来源：{url}")
               return None
 
-          def resolve_server(server):
-              """解析服务器 IP；域名使用系统 DNS 查询。"""
+          def resolve_ip(server):
               if not isinstance(server, str) or not server.strip():
                   return None
-
-              server = server.strip().strip("[]")
-
+              host = server.strip().strip("[]")
               try:
-                  ip = ipaddress.ip_address(server)
+                  ip = ipaddress.ip_address(host)
                   return str(ip) if ip.is_global else None
               except ValueError:
                   pass
-
-              # 不解析 IP:port；IPv6 带端口需在配置中规范填写。
-              if server.count(":") == 1:
-                  host, port = server.rsplit(":", 1)
-                  if port.isdigit():
-                      server = host
-
+              if host.count(":") == 1:
+                  h, p = host.rsplit(":", 1)
+                  if p.isdigit():
+                      host = h
               try:
-                  answers = socket.getaddrinfo(
-                      server, None, type=socket.SOCK_STREAM
-                  )
-                  for answer in answers:
-                      ip = answer[4][0].split("%")[0]
-                      parsed = ipaddress.ip_address(ip)
-                      if parsed.is_global:
-                          return str(parsed)
+                  for ans in socket.getaddrinfo(host, None, type=socket.SOCK_STREAM):
+                      ip = ans[4][0].split("%")[0]
+                      if ipaddress.ip_address(ip).is_global:
+                          return ip
               except Exception as e:
-                  log(f"DNS 解析失败：{server}: {str(e)[:120]}")
-
+                  log(f"DNS 解析失败 {host}: {str(e)[:100]}")
               return None
 
-          def geo_country(ip):
-              """
-              在线 GeoIP 查询。
-              ip-api 提供中文国家名；失败时使用备用服务。
-              不把未知位置伪装成真实国家。
-              """
-              if not ip:
-                  return "未知地区"
-
-              # 服务有速率限制，使用缓存且限制请求频率。
-              if ip in geo_cache:
-                  return geo_cache[ip]
-
-              country = None
-
-              try:
-                  response = session.get(
-                      f"http://ip-api.com/json/{quote(ip)}",
-                      params={"fields": "status,country,countryCode", "lang": "zh-CN"},
-                      timeout=12,
-                  )
-                  if response.ok:
-                      data = response.json()
-                      if data.get("status") == "success":
-                          country = data.get("country")
-              except Exception as e:
-                  log(f"主 GeoIP 服务失败：{ip}: {str(e)[:120]}")
-
-              if not country:
-                  try:
-                      response = session.get(
-                          f"https://ipwho.is/{quote(ip)}",
-                          timeout=12,
-                      )
-                      data = response.json()
-                      if data.get("success") and data.get("country_code"):
-                          country = COUNTRY_ZH.get(
-                              data["country_code"].upper()
-                          )
-                          if not country:
-                              country = data.get("country")
-                  except Exception as e:
-                      log(f"备用 GeoIP 服务失败：{ip}: {str(e)[:120]}")
-
-              country = country or "未知地区"
-              geo_cache[ip] = country
-
-              # 避免触发免费 GeoIP 服务的频率限制
-              time.sleep(0.7)
-              return country
-
           COUNTRY_ZH = {
-              "CN": "中国", "HK": "中国香港", "MO": "中国澳门",
-              "TW": "中国台湾", "US": "美国", "JP": "日本",
-              "KR": "韩国", "SG": "新加坡", "GB": "英国",
-              "UK": "英国", "DE": "德国", "FR": "法国",
-              "NL": "荷兰", "RU": "俄罗斯", "CA": "加拿大",
-              "AU": "澳大利亚", "IN": "印度", "ID": "印度尼西亚",
-              "MY": "马来西亚", "TH": "泰国", "VN": "越南",
-              "PH": "菲律宾", "TR": "土耳其", "CH": "瑞士",
-              "SE": "瑞典", "NO": "挪威", "FI": "芬兰",
-              "DK": "丹麦", "IT": "意大利", "ES": "西班牙",
-              "PT": "葡萄牙", "BE": "比利时", "AT": "奥地利",
-              "PL": "波兰", "UA": "乌克兰", "BR": "巴西",
-              "AR": "阿根廷", "MX": "墨西哥", "ZA": "南非",
-              "AE": "阿联酋", "IL": "以色列", "IR": "伊朗",
-              "PK": "巴基斯坦", "BD": "孟加拉国",
-              "NP": "尼泊尔", "KH": "柬埔寨", "LA": "老挝",
-              "MM": "缅甸", "KZ": "哈萨克斯坦",
-              "IS": "冰岛", "IE": "爱尔兰", "CZ": "捷克",
-              "RO": "罗马尼亚", "BG": "保加利亚",
-              "GR": "希腊", "HR": "克罗地亚",
-              "CY": "塞浦路斯", "LU": "卢森堡",
+              "CN":"中国", "HK":"中国香港", "MO":"中国澳门", "TW":"中国台湾",
+              "US":"美国", "JP":"日本", "KR":"韩国", "SG":"新加坡",
+              "GB":"英国", "DE":"德国", "FR":"法国", "NL":"荷兰",
+              "RU":"俄罗斯", "CA":"加拿大", "AU":"澳大利亚", "IN":"印度",
+              "ID":"印度尼西亚", "MY":"马来西亚", "TH":"泰国", "VN":"越南",
+              "PH":"菲律宾", "TR":"土耳其", "CH":"瑞士", "SE":"瑞典",
+              "NO":"挪威", "FI":"芬兰", "DK":"丹麦", "IT":"意大利",
+              "ES":"西班牙", "PT":"葡萄牙", "BE":"比利时", "AT":"奥地利",
+              "PL":"波兰", "UA":"乌克兰", "BR":"巴西", "AR":"阿根廷",
+              "MX":"墨西哥", "ZA":"南非", "AE":"阿联酋", "IL":"以色列",
+              "IR":"伊朗", "PK":"巴基斯坦", "BD":"孟加拉国",
+              "KZ":"哈萨克斯坦", "IE":"爱尔兰", "CZ":"捷克",
+              "RO":"罗马尼亚", "GR":"希腊", "IS":"冰岛"
           }
 
-          geo_cache = {}
-
-          def server_key(proxy):
-              """
-              按 server 地址去重，不区分大小写。
-              仅 server 相同才去重，不因端口相同而误删不同服务器。
-              """
-              server = proxy.get("server")
-              if not isinstance(server, str):
-                  return None
-              return server.strip().rstrip(".").lower()
+          def country_of(ip):
+              if not ip:
+                  return "未知地区"
+              if ip in geo_cache:
+                  return geo_cache[ip]
+              name = None
+              try:
+                  r = session.get(
+                      f"http://ip-api.com/json/{quote(ip)}",
+                      params={"fields":"status,country,countryCode", "lang":"zh-CN"},
+                      timeout=10
+                  )
+                  d = r.json()
+                  if d.get("status") == "success":
+                      name = d.get("country")
+              except Exception as e:
+                  log(f"主 GeoIP 查询失败：{str(e)[:100]}")
+              if not name:
+                  try:
+                      d = session.get(
+                          f"https://ipwho.is/{quote(ip)}", timeout=10
+                      ).json()
+                      if d.get("success"):
+                          name = COUNTRY_ZH.get(
+                              str(d.get("country_code", "")).upper()
+                          ) or d.get("country")
+                  except Exception as e:
+                      log(f"备用 GeoIP 查询失败：{str(e)[:100]}")
+              geo_cache[ip] = name or "未知地区"
+              time.sleep(0.5)
+              return geo_cache[ip]
 
           def main():
-              urls = get_urls()
               configs = []
-
-              log(f"共发现 {len(urls)} 个在线地址")
-
-              for index, url in enumerate(urls, 1):
-                  log(f"[{index}/{len(urls)}] 正在读取：{url}")
-                  text = download_with_fallback(url)
-                  if text is None:
+              urls = load_urls()
+              for i, url in enumerate(urls, 1):
+                  log(f"[{i}/{len(urls)}] 读取 {url}")
+                  raw = download(url)
+                  if raw is None:
                       continue
-
-                  config = parse_yaml(text, url)
-                  if config is None:
-                      continue
-
-                  configs.append(config)
+                  cfg = parse_config(raw, url)
+                  if cfg is not None:
+                      configs.append(cfg)
 
               if not configs:
-                  raise RuntimeError(
-                      "所有在线配置均下载或解析失败，停止生成，"
-                      "避免覆盖已有的有效 final.yaml"
+                  raise RuntimeError("所有来源均失败，保留原 final.yaml，不生成空配置")
+
+              merged = {}
+              proxies, rules = [], []
+              groups, group_order = {}, []
+              rule_providers, proxy_providers = {}, {}
+
+              special = {
+                  "proxies", "proxy-groups", "rules",
+                  "rule-providers", "proxy-providers"
+              }
+
+              for cfg in configs:
+                  merged = merge_dict(
+                      merged, {k:v for k,v in cfg.items() if k not in special}
                   )
 
-              # 递归合并普通字段，单独处理特殊列表。
-              merged = {}
-              all_proxies = []
-              group_map = {}
-              group_order = []
-              old_name_candidates = {}
-              rules = []
-              rule_providers = {}
-              proxy_providers = {}
+                  for p in cfg.get("proxies") or []:
+                      if isinstance(p, dict):
+                          proxies.append(dict(p))
 
-              for config in configs:
-                  # 保存来源中的原始节点，后续按 server 去重并命名
-                  for proxy in config.get("proxies", []) or []:
-                      if isinstance(proxy, dict):
-                          all_proxies.append(dict(proxy))
-
-                  for group in config.get("proxy-groups", []) or []:
-                      if not isinstance(group, dict):
+                  for g in cfg.get("proxy-groups") or []:
+                      if not isinstance(g, dict) or not g.get("name"):
                           continue
-                      name = group.get("name")
-                      if not isinstance(name, str) or not name:
-                          continue
-
-                      if name not in group_map:
-                          group_map[name] = dict(group)
-                          group_order.append(name)
+                      n = g["name"]
+                      if n not in groups:
+                          groups[n] = dict(g)
+                          group_order.append(n)
                       else:
-                          current = group_map[name]
-                          for key, value in group.items():
-                              if key == "proxies":
-                                  existing = current.get("proxies", [])
-                                  current["proxies"] = unique_list(
-                                      (existing if isinstance(existing, list) else [])
-                                      + (value if isinstance(value, list) else [])
-                                  )
-                              elif key not in current:
-                                  current[key] = value
-                              elif isinstance(current[key], dict) and isinstance(value, dict):
-                                  current[key] = merge_dicts(current[key], value)
-                              elif isinstance(current[key], list) and isinstance(value, list):
-                                  current[key] = unique_list(current[key] + value)
+                          groups[n] = merge_dict(groups[n], g)
 
                   rules.extend(
-                      r for r in (config.get("rules", []) or [])
+                      r for r in (cfg.get("rules") or [])
                       if isinstance(r, (str, dict))
                   )
 
-                  for key in ("rule-providers", "proxy-providers"):
-                      target = rule_providers if key == "rule-providers" else proxy_providers
-                      for name, value in (config.get(key, {}) or {}).items():
-                          if name not in target:
-                              target[name] = value
-                          elif isinstance(target[name], dict) and isinstance(value, dict):
-                              target[name] = merge_dicts(target[name], value)
+                  for key, target in (
+                      ("rule-providers", rule_providers),
+                      ("proxy-providers", proxy_providers)
+                  ):
+                      for n, v in (cfg.get(key) or {}).items():
+                          if n not in target:
+                              target[n] = v
+                          elif isinstance(target[n], dict) and isinstance(v, dict):
+                              target[n] = merge_dict(target[n], v)
 
-                  # 先合并普通字段，排除需要专门处理的字段
-                  ordinary = {
-                      k: v for k, v in config.items()
-                      if k not in (
-                          "proxies", "proxy-groups", "rules",
-                          "rule-providers", "proxy-providers"
-                      )
-                  }
-                  merged = merge_dicts(merged, ordinary)
-
-              # 按 server 去重：保留第一次出现的节点
-              deduped = []
-              seen_servers = set()
-              for proxy in all_proxies:
-                  key = server_key(proxy)
-                  if not key:
-                      log(f"节点缺少有效 server，保留原节点：{proxy.get('name')}")
-                      deduped.append(proxy)
+              # 按 server 地址去重，保留首次出现的节点
+              deduped, seen_servers = [], set()
+              for p in proxies:
+                  s = p.get("server")
+                  key = s.strip().rstrip(".").lower() if isinstance(s, str) else None
+                  if key and key in seen_servers:
+                      log(f"重复 server，保留首个：{s}")
                       continue
-                  if key in seen_servers:
-                      log(f"重复 server 已跳过：{key}")
-                      continue
-                  seen_servers.add(key)
-                  deduped.append(proxy)
+                  if key:
+                      seen_servers.add(key)
+                  deduped.append(p)
 
-              # 根据 server 的 IP 或域名 GeoIP 查询国家，并保证名称唯一
-              country_counts = Counter()
-              used_names = set()
-              old_to_new = {}
-
-              for proxy in deduped:
-                  old_name = proxy.get("name")
-                  server = proxy.get("server")
-                  ip = resolve_server(server) if server else None
-                  country = geo_country(ip)
-
-                  country_counts[country] += 1
-                  n = country_counts[country]
-                  base = country if n == 1 else f"{country}{n}"
-
-                  new_name = base
-                  suffix = 2
-                  while new_name in used_names:
-                      new_name = f"{base}-{suffix}"
+              # GeoIP 命名；确保所有新名称唯一
+              counts, used_names, old_to_new = Counter(), set(), {}
+              for p in deduped:
+                  old = p.get("name")
+                  ip = resolve_ip(p.get("server"))
+                  country = country_of(ip)
+                  counts[country] += 1
+                  base = country if counts[country] == 1 else f"{country}{counts[country]}"
+                  name, suffix = base, 2
+                  while name in used_names:
+                      name = f"{base}-{suffix}"
                       suffix += 1
+                  used_names.add(name)
+                  p["name"] = name
+                  if isinstance(old, str) and old:
+                      old_to_new.setdefault(old, name)
 
-                  used_names.add(new_name)
-                  proxy["name"] = new_name
+              node_names = [p["name"] for p in deduped]
+              node_set = set(node_names)
 
-                  # 同名原始节点若有多种 server，只映射到首次出现者
-                  if isinstance(old_name, str) and old_name:
-                      old_to_new.setdefault(old_name, new_name)
-
-                  log(f"节点命名：{server} -> {new_name}")
-
-              # 更新策略组原始引用，避免节点改名后引用失效
-              final_names = {p.get("name") for p in deduped}
-              for name in group_order:
-                  group = group_map[name]
-                  refs = group.get("proxies", [])
+              # 修复来源策略组中的节点引用
+              for n in group_order:
+                  g = groups[n]
+                  refs = g.get("proxies", [])
                   if not isinstance(refs, list):
                       refs = []
+                  refs = [
+                      old_to_new.get(x, x) if isinstance(x, str) else x
+                      for x in refs
+                  ]
+                  # 去除指向已被去重删除的原节点的悬空引用
+                  refs = [
+                      x for x in refs
+                      if not isinstance(x, str)
+                      or x in node_set
+                      or x in ("DIRECT", "REJECT", "REJECT-DROP",
+                               "PASS", "COMPATIBLE", "GLOBAL")
+                      or x in groups
+                  ]
+                  g["proxies"] = unique(refs)
 
-                  rewritten = []
-                  for ref in refs:
-                      if isinstance(ref, str):
-                          ref = old_to_new.get(ref, ref)
-                      rewritten.append(ref)
-
-                  # 将全部合并节点加入策略组，原有 DIRECT / REJECT 等引用保留。
-                  group_type = str(group.get("type", "")).lower()
-                  if group_type in (
-                      "select", "url-test", "fallback", "load-balance",
-                      "smart", "loadbalance"
-                  ):
-                      rewritten.extend(sorted(
-                          final_names,
-                          key=lambda n: next(
-                              (i for i, p in enumerate(deduped)
-                               if p.get("name") == n),
-                              10**9
-                          )
-                      ))
-
-                  group["proxies"] = unique_list(rewritten)
-
-              # 特殊列表、字典写回
-              merged["proxies"] = deduped
-              merged["proxy-groups"] = [
-                  group_map[name] for name in group_order
+              # 确保存在一个可供故障切换使用的代理选择组
+              # 优先复用原有选择组；否则建立一个节点选择组
+              candidates = [
+                  n for n in group_order
+                  if str(groups[n].get("type", "")).lower() == "select"
+                  and n != DIRECT_GROUP
               ]
-              merged["rules"] = unique_list(rules)
+              if candidates:
+                  fallback_target = candidates[0]
+                  groups[fallback_target]["proxies"] = unique(
+                      groups[fallback_target].get("proxies", []) + node_names
+                  )
+              else:
+                  fallback_target = SELECT_GROUP
+                  if fallback_target in groups:
+                      fallback_target = "🚀 节点选择（自动）"
+                  groups[fallback_target] = {
+                      "name": fallback_target,
+                      "type": "select",
+                      "proxies": node_names + ["DIRECT"]
+                  }
+                  group_order.append(fallback_target)
+
+              # 自动建立直连优先组：DIRECT 健康检查失败时转向代理选择组
+              groups[DIRECT_GROUP] = {
+                  "name": DIRECT_GROUP,
+                  "type": "fallback",
+                  "proxies": ["DIRECT", fallback_target],
+                  "url": "https://www.gstatic.com/generate_204",
+                  "interval": 300,
+                  "timeout": 5000
+              }
+              if DIRECT_GROUP not in group_order:
+                  group_order.append(DIRECT_GROUP)
+
+              # 将原规则中的最终兜底规则移到末尾并替换目标。
+              # 其他具体规则的顺序尽量保留。
+              final_rules = []
+              for r in rules:
+                  if isinstance(r, str):
+                      parts = r.split(",", 1)
+                      if parts[0].strip().upper() in ("MATCH", "FINAL"):
+                          continue
+                  final_rules.append(r)
+
+              final_rules = unique(final_rules)
+
+              # 国内规则放在具体规则后、兜底之前。
+              # 因此原有的指定网站/应用分流规则仍优先生效。
+              final_rules = [
+                  r for r in final_rules if r not in GEO_RULES
+              ] + GEO_RULES
+              final_rules.append(f"MATCH,{DIRECT_GROUP}")
+
+              merged["proxies"] = deduped
+              merged["proxy-groups"] = [groups[n] for n in group_order]
+              merged["rules"] = final_rules
 
               if rule_providers:
                   merged["rule-providers"] = rule_providers
               if proxy_providers:
                   merged["proxy-providers"] = proxy_providers
 
-              # 开启 Clash / Mihomo GeoData 更新相关设置。
-              # 保留来源中已配置的 geox-url，不强行覆盖自定义镜像。
+              # GeoData 自动更新配置；保留来源中已设置的自定义地址
               merged.setdefault("geodata-mode", True)
               merged.setdefault("geo-auto-update", True)
               merged.setdefault("geo-update-interval", 24)
-              merged.setdefault("geox-url", {
-                  "geoip": "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat",
-                  "geosite": "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat",
-                  "mmdb": "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb",
-                  "asn": "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb",
-              })
+              geox = merged.setdefault("geox-url", {})
+              if isinstance(geox, dict):
+                  geox.setdefault(
+                      "geoip",
+                      "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
+                  )
+                  geox.setdefault(
+                      "geosite",
+                      "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
+                  )
+                  geox.setdefault(
+                      "mmdb",
+                      "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb"
+                  )
 
-              # 去除可能因源配置重复合并造成的规则重复
-              merged["rules"] = unique_list(merged.get("rules", []))
-
-              # UTF-8 输出，并在写入前进行最终 YAML 校验
-              output_text = yaml.safe_dump(
-                  merged,
-                  allow_unicode=True,
-                  sort_keys=False,
-                  default_flow_style=False,
-                  width=120,
+              text = yaml.safe_dump(
+                  merged, allow_unicode=True, sort_keys=False,
+                  default_flow_style=False, width=120
               )
-
-              check = yaml.safe_load(output_text)
+              check = yaml.safe_load(text)
               if not isinstance(check, dict):
-                  raise RuntimeError("最终配置不是有效的 YAML 字典")
+                  raise RuntimeError("最终 YAML 校验失败")
               if not isinstance(check.get("proxies"), list):
-                  raise RuntimeError("最终配置缺少有效 proxies 列表")
+                  raise RuntimeError("最终配置缺少 proxies")
               if not isinstance(check.get("proxy-groups"), list):
-                  raise RuntimeError("最终配置缺少有效 proxy-groups 列表")
+                  raise RuntimeError("最终配置缺少 proxy-groups")
               if not isinstance(check.get("rules"), list):
-                  raise RuntimeError("最终配置缺少有效 rules 列表")
+                  raise RuntimeError("最终配置缺少 rules")
 
-              with open(OUTPUT_FILE, "w", encoding="utf-8", newline="\n") as f:
-                  f.write(output_text)
-
+              with open(OUTPUT, "w", encoding="utf-8", newline="\n") as f:
+                  f.write(text)
               log(
-                  f"合并完成：成功读取 {len(configs)} 份配置，"
-                  f"节点 {len(deduped)} 个，策略组 {len(group_order)} 个，"
-                  f"规则 {len(merged['rules'])} 条"
+                  f"完成：来源 {len(configs)} 份，节点 {len(deduped)} 个，"
+                  f"策略组 {len(group_order)} 个，规则 {len(final_rules)} 条"
               )
 
           if __name__ == "__main__":
               try:
                   main()
-              except Exception as exc:
-                  log(f"工作流执行失败：{exc}")
+              except Exception as e:
+                  log(f"工作流失败：{e}")
                   sys.exit(1)
           PY
 
       - name: Commit and push final.yaml
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
           git add final.yaml
-
           if git diff --cached --quiet; then
-            echo "final.yaml 没有变化，无需提交"
+            echo "final.yaml 无变化"
             exit 0
           fi
-
           git commit -m "chore: update merged Clash configuration"
           git push origin "HEAD:${GITHUB_REF_NAME}"
