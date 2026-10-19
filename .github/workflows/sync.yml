@@ -1,4 +1,4 @@
-```yaml
+
 name: Sync final.yaml to GitLab
 
 on:
@@ -63,4 +63,3 @@ jobs:
 
           git commit -m "Update final.yaml from GitHub"
           git push origin HEAD:main
-```
