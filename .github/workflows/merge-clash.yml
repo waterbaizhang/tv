@@ -1,4 +1,4 @@
-```yaml
+
 name: Merge Clash Subscriptions
 
 on:
@@ -852,4 +852,3 @@ jobs:
             git commit -m "Update merged Clash configuration"
             git push
           fi
-```
