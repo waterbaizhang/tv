@@ -36,7 +36,10 @@ jobs:
         env:
           PYTHONUTF8: "1"
         run: |
-          cat > merge.py <<'PY'
+        if __name__ == "__main__":
+            main()
+          PY
+          python merge.py
           import ipaddress
           import re
           import socket
