@@ -1,99 +1,118 @@
-name: Merge Clash Subscriptions
+                      if key in seen_servers:
+                          continue
+                      seen_servers.add(key)
+                      raw_proxies.append(dict(proxy))
 
-on:
-  workflow_dispatch:
-  schedule:
-    # 每天北京时间 07:00（UTC 23:00）
-    - cron: "0 23 * * *"
+              if not raw_proxies:
+                  raise SystemExit("错误：没有从订阅中取得任何有效节点；未覆盖 final.yaml")
 
-permissions:
-  contents: write
+              # 按服务器所在国家命名节点，并自动处理重名。
+              country_counts = {}
+              proxies = []
+              for proxy in raw_proxies:
+                  country = country_of(proxy.get("server"))
+                  country_counts[country] = country_counts.get(country, 0) + 1
+                  suffix = country_counts[country]
+                  proxy["name"] = country if suffix == 1 else f"{country} {suffix}"
+                  proxies.append(proxy)
 
-concurrency:
-  group: merge-clash-subscriptions
-  cancel-in-progress: false
+              node_names = [proxy["name"] for proxy in proxies]
 
-jobs:
-  merge:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+              # 只输出手动选择、自动选择两个组，避免订阅中残留组引用缺失。
+              proxy_groups = [
+                  {
+                      "name": AUTO_GROUP,
+                      "type": "url-test",
+                      "proxies": node_names,
+                      "url": "https://www.gstatic.com/generate_204",
+                      "interval": 600,
+                      "tolerance": 50,
+                  },
+                  {
+                      "name": MANUAL_GROUP,
+                      "type": "select",
+                      "proxies": [AUTO_GROUP] + node_names,
+                  },
+              ]
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+              # 规则保留各订阅的普通规则，去掉原有最终规则，统一加国内直连和代理兜底。
+              rules = []
+              for config in valid_configs:
+                  source_rules = config.get("rules", [])
+                  if not isinstance(source_rules, list):
+                      continue
+                  for rule in source_rules:
+                      if not isinstance(rule, str) or not rule.strip():
+                          continue
+                      upper = rule.strip().upper()
+                      if upper.startswith(("MATCH,", "FINAL,", "GEOIP,CN", "GEOSITE,CN")):
+                          continue
+                      # 只保留手动选择/自动选择两个代理组；旧规则若指向被移除的组，改走手动选择。
+                      parts = rule.rsplit(",", 1)
+                      if len(parts) == 2:
+                          target = parts[1].strip()
+                          if target not in {"DIRECT", "REJECT", "PASS", "COMPATIBLE"}:
+                              rule = parts[0] + "," + MANUAL_GROUP
+                      if rule not in rules:
+                          rules.append(rule)
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+              rules.extend([
+                  "GEOIP,CN,DIRECT",
+                  "GEOSITE,CN,DIRECT",
+                  f"MATCH,{MANUAL_GROUP}",
+              ])
 
-      - name: Install dependencies
-        run: python -m pip install --disable-pip-version-check PyYAML requests
+              # 只生成必要的 Mihomo/Clash 配置字段，避免旧代理组引用不存在的节点。
+              output = {
+                  "mixed-port": 7890,
+                  "allow-lan": True,
+                  "mode": "rule",
+                  "log-level": "info",
+                  "ipv6": False,
+                  "proxy-groups": proxy_groups,
+                  "proxies": proxies,
+                  "rules": rules,
+              }
 
-      - name: Merge subscriptions
-        env:
-          PYTHONUTF8: "1"
-        run: |
-        if __name__ == "__main__":
-            main()
+              text = yaml.safe_dump(
+                  output, allow_unicode=True, sort_keys=False,
+                  default_flow_style=False, width=1000
+              )
+              # 写入前重新解析，避免输出无效 YAML。
+              yaml.safe_load(text)
+              OUTPUT_FILE.write_text(text, encoding="utf-8", newline="\n")
+              print(f"生成成功：{OUTPUT_FILE}，节点 {len(proxies)} 个，规则 {len(rules)} 条。")
+
+          if __name__ == "__main__":
+              main()
           PY
           python merge.py
-          import ipaddress
-          import re
-          import socket
-          import subprocess
-          import time
-          from pathlib import Path
 
-          import requests
+      - name: Validate final.yaml
+        run: |
+          python - <<'PY'
           import yaml
+          with open("final.yaml", "r", encoding="utf-8") as f:
+              data = yaml.safe_load(f)
+          assert isinstance(data, dict), "final.yaml 不是有效 YAML 对象"
+          assert isinstance(data.get("proxies"), list), "缺少 proxies 列表"
+          groups = data.get("proxy-groups", [])
+          names = {p.get("name") for p in data["proxies"] if isinstance(p, dict)}
+          group_names = {g.get("name") for g in groups if isinstance(g, dict)}
+          for group in groups:
+              for ref in group.get("proxies", []):
+                  assert ref in names or ref in group_names or ref in {"DIRECT", "REJECT", "PASS", "COMPATIBLE"}, f"代理组 {group.get('name')} 引用了不存在的项目：{ref}"
+          print("final.yaml YAML 语法和代理组引用检查通过。")
+          PY
 
-          URLS_FILE = Path("urls.txt")
-          OUTPUT_FILE = Path("final.yaml")
-
-          MANUAL_GROUP = "🚀 节点选择"
-          AUTO_GROUP = "♻️ 自动选择"
-
-          COUNTRY_NAMES = {
-              "China": "中国", "Hong Kong": "香港", "Macao": "澳门",
-              "Taiwan": "台湾", "Japan": "日本", "South Korea": "韩国",
-              "Korea": "韩国", "Singapore": "新加坡",
-              "United States": "美国", "United Kingdom": "英国",
-              "Canada": "加拿大", "Australia": "澳大利亚",
-              "New Zealand": "新西兰", "Germany": "德国", "France": "法国",
-              "Netherlands": "荷兰", "Russia": "俄罗斯", "India": "印度",
-              "Indonesia": "印度尼西亚", "Malaysia": "马来西亚",
-              "Thailand": "泰国", "Vietnam": "越南", "Philippines": "菲律宾",
-              "Turkey": "土耳其", "Switzerland": "瑞士", "Sweden": "瑞典",
-              "Norway": "挪威", "Finland": "芬兰", "Italy": "意大利",
-              "Spain": "西班牙", "Poland": "波兰", "Ukraine": "乌克兰",
-              "Brazil": "巴西", "Argentina": "阿根廷", "Mexico": "墨西哥",
-              "United Arab Emirates": "阿联酋", "Israel": "以色列",
-              "South Africa": "南非", "Romania": "罗马尼亚",
-              "Bulgaria": "保加利亚", "Czechia": "捷克", "Austria": "奥地利",
-              "Belgium": "比利时", "Ireland": "爱尔兰", "Portugal": "葡萄牙",
-              "Denmark": "丹麦", "Iceland": "冰岛", "Greece": "希腊",
-              "Hungary": "匈牙利", "Slovakia": "斯洛伐克",
-              "Slovenia": "斯洛文尼亚", "Croatia": "克罗地亚",
-              "Serbia": "塞尔维亚", "Kazakhstan": "哈萨克斯坦",
-              "Pakistan": "巴基斯坦", "Bangladesh": "孟加拉国",
-              "Nepal": "尼泊尔", "Cambodia": "柬埔寨", "Laos": "老挝",
-              "Myanmar": "缅甸", "Mongolia": "蒙古", "Chile": "智利",
-              "Colombia": "哥伦比亚", "Peru": "秘鲁", "Panama": "巴拿马",
-              "Nigeria": "尼日利亚", "Egypt": "埃及", "Saudi Arabia": "沙特阿拉伯",
-              "Qatar": "卡塔尔", "Kuwait": "科威特", "Bahrain": "巴林",
-              "Oman": "阿曼", "Jordan": "约旦", "Iraq": "伊拉克",
-              "Iran": "伊朗", "Afghanistan": "阿富汗",
-          }
-
-          session = requests.Session()
-          session.headers.update({"User-Agent": "ClashSubscriptionMerger/2.0"})
-          geo_cache = {}
-
-          def fetch_text(url):
-              for attempt in range(3):
-                  try:
-                      response = session.get(url, timeout=(10, 35))
-                      response.raise_for_status()
+      - name: Commit and push final.yaml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add final.yaml
+          if git diff --cached --quiet; then
+            echo "final.yaml 没有变化，无需提交。"
+          else
+            git commit -m "Update merged Clash configuration"
+            git push
+          fi
