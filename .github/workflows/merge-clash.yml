@@ -369,8 +369,8 @@ jobs:
                               elif key not in current:
                                   current[key] = value
 
-              # 原订阅节点名称改成国家名称后，同步更新组内引用。
-              for group in groups.values():
+# 将原节点名称映射为新名称，并补齐需要包含全部节点的选择组。
+                for group_name, group in groups.items():
                   refs = group.get("proxies", []) or []
                   mapped_refs = []
 
@@ -378,9 +378,19 @@ jobs:
                       if not isinstance(ref, str):
                           continue
 
-                      mapped_refs.append(name_map.get(ref, ref))
+        # 更新节点名称；代理组名称保持不变。
+                  mapped_refs.append(name_map.get(ref, ref))
 
-                  group["proxies"] = unique(mapped_refs)
+                  mapped_refs = unique(mapped_refs)
+
+                  group_type = str(group.get("type", "")).lower()
+
+    # 自动选择、故障转移、负载均衡组补齐全部有效节点。
+    # 手动选择组也保留原有选项，并加入全部节点。
+                  if group_type in ("select", "url-test", "fallback", "load-balance"):
+                  mapped_refs = unique(mapped_refs + node_names)
+
+                  group["proxies"] = mapped_refs
 
                   uses = group.get("use", []) or []
                   group["use"] = unique([
