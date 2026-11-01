@@ -11,9 +11,9 @@ proxy-groups:
   - 法国 2
   - 法国 3
   - 德国
-  - 台湾
   - 美国
   - 美国 2
+  - 台湾
   url: https://www.gstatic.com/generate_204
   interval: 600
   tolerance: 50
@@ -25,9 +25,9 @@ proxy-groups:
   - 法国 2
   - 法国 3
   - 德国
-  - 台湾
   - 美国
   - 美国 2
+  - 台湾
 proxies:
 - name: 法国
   type: hysteria
@@ -77,18 +77,6 @@ proxies:
   protocol: udp
   up: 11 Mbps
   down: 55 Mbps
-- name: 台湾
-  type: hysteria
-  server: tw-25.497489.xyz
-  port: 10099
-  auth-str: github.com/Alvin9999-newpac/fanqiang
-  sni: tw-25.497489.xyz
-  skip-cert-verify: false
-  alpn:
-  - h3
-  protocol: udp
-  up: 20 Mbps
-  down: 20 Mbps
 - name: 美国
   type: hysteria
   server: 198.200.57.142
@@ -110,6 +98,18 @@ proxies:
   password: github.com/Alvin9999-newpac/fanqiang
   udp: true
   multiplexing: MULTIPLEXING_LOW
+- name: 台湾
+  type: hysteria
+  server: tw-25.497489.xyz
+  port: 10099
+  auth-str: github.com/Alvin9999-newpac/fanqiang
+  sni: tw-25.497489.xyz
+  skip-cert-verify: false
+  alpn:
+  - h3
+  protocol: udp
+  up: 20 Mbps
+  down: 20 Mbps
 rules:
 - GEOIP,CN,DIRECT
 - GEOSITE,CN,DIRECT
