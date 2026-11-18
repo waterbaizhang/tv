@@ -9,7 +9,6 @@ proxy-groups:
   proxies:
   - 法国
   - 法国 2
-  - 法国 3
   - 德国
   - 美国
   - 美国 2
@@ -23,7 +22,6 @@ proxy-groups:
   - ♻️ 自动选择
   - 法国
   - 法国 2
-  - 法国 3
   - 德国
   - 美国
   - 美国 2
@@ -31,7 +29,7 @@ proxy-groups:
 proxies:
 - name: 法国
   type: hysteria
-  server: 62.210.28.175
+  server: 62.210.124.132
   port: 24667
   auth-str: dongtaiwang.com
   sni: bing.com
@@ -42,18 +40,6 @@ proxies:
   up: 11 Mbps
   down: 55 Mbps
 - name: 法国 2
-  type: hysteria
-  server: 163.172.117.163
-  port: 36699
-  auth-str: dongtaiwang.com
-  sni: bing.com
-  skip-cert-verify: true
-  alpn:
-  - h3
-  protocol: udp
-  up: 11 Mbps
-  down: 55 Mbps
-- name: 法国 3
   type: hysteria
   server: 62.210.70.191
   port: 23556
@@ -79,9 +65,9 @@ proxies:
   down: 55 Mbps
 - name: 美国
   type: hysteria
-  server: 198.200.57.142
-  port: 22335
-  auth-str: github.com/Alvin9999-newpac/fanqiang
+  server: 38.6.222.130
+  port: 11008
+  auth-str: dongtaiwang.com
   sni: bing.com
   skip-cert-verify: true
   alpn:
