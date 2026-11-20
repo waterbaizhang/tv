@@ -12,6 +12,7 @@ proxy-groups:
   - 德国
   - 美国
   - 美国 2
+  - 美国 3
   - 台湾
   url: https://www.gstatic.com/generate_204
   interval: 600
@@ -25,6 +26,7 @@ proxy-groups:
   - 德国
   - 美国
   - 美国 2
+  - 美国 3
   - 台湾
 proxies:
 - name: 法国
@@ -65,7 +67,7 @@ proxies:
   down: 55 Mbps
 - name: 美国
   type: hysteria
-  server: 38.6.222.130
+  server: 38.6.222.131
   port: 11008
   auth-str: dongtaiwang.com
   sni: bing.com
@@ -76,6 +78,18 @@ proxies:
   up: 11 Mbps
   down: 55 Mbps
 - name: 美国 2
+  type: hysteria
+  server: 38.6.222.132
+  port: 11008
+  auth-str: dongtaiwang.com
+  sni: bing.com
+  skip-cert-verify: true
+  alpn:
+  - h3
+  protocol: udp
+  up: 11 Mbps
+  down: 55 Mbps
+- name: 美国 3
   type: mieru
   server: 198.200.57.152
   port: 33556
